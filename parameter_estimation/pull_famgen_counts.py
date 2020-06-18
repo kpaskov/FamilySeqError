@@ -78,9 +78,10 @@ print('families %d' % len(families))
 
 with open(out_file, 'w+') as f:	
     gen_files = sorted([f for f in listdir(args.data_dir) if ('chr.%s.' % args.chrom) in f and 'gen.npz' in f])
+    coord_files = sorted([f for f in listdir(args.data_dir) if ('chr.%s.' % args.chrom) in f and 'gen.coordinates.npy' in f])
 
     # pull snp positions
-    pos_data = np.load('%s/chr.%s.gen.coordinates.npy' % (args.data_dir, args.chrom))
+    pos_data = np.vstack([np.load('%s/%s' % (args.data_dir, coord_file)) for coord_file in coord_files])
     is_snp = pos_data[:, 2].astype(bool)
     is_pass = pos_data[:, 3].astype(bool)
 
