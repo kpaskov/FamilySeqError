@@ -6,6 +6,7 @@ import gzip
 from itertools import product, islice
 import sys
 import argparse
+import os
 
 parser = argparse.ArgumentParser(description='Pull genotypes.')
 parser.add_argument('vcf_file', type=str, help='VCF file to pull from.')
@@ -91,6 +92,8 @@ def process_body(f, num_samples):
         np.save('%s/chr.%s.%d.gen.coordinates' % (args.out_directory, args.chrom, args.batch_num), np.asarray(chrom_coord, dtype=int))
     else:
         print('No data in batch.')
+        os.remove('%s/chr.%s.%d.gen.variants.txt.gz' % (args.out_directory, args.chrom, args.batch_num))
+
     print('Completed in ', time.time()-t0, 'sec')
 
 if args.vcf_file.endswith('.gz'):
