@@ -50,9 +50,6 @@ exclude_regions, exclude_coverage = (None, 0) if args.exclude is None else proce
 print('including %s bp' % ('all' if include_regions is None else str(include_coverage)))
 print('excluding %s bp' % ('no' if exclude_regions is None else str(exclude_coverage)))
 
-out_file = '%s/chr.%s.famgen.counts.txt' % (args.out_dir, args.chrom)
-print('saving to %s' % out_file)
-
 # pull families with sequence data
 with open(sample_file, 'r') as f:
     sample_id_to_index = dict([(line.strip(), i) for i, line in enumerate(f)])
@@ -61,7 +58,6 @@ with open(sample_file, 'r') as f:
 
 # pull families from ped file
 families = dict()
-
 with open(args.ped_file, 'r') as f:	
     for line in f:
         pieces = line.strip().split('\t')
@@ -76,12 +72,16 @@ with open(args.ped_file, 'r') as f:
                 families[(fam_id, m_id, f_id)].append(child_id)
 print('families %d' % len(families))
 
-with open(out_file, 'w+') as f:	
-    gen_files = sorted([f for f in listdir(args.data_dir) if ('chr.%s.' % args.chrom) in f and 'gen.npz' in f])
-    coord_files = sorted([f for f in listdir(args.data_dir) if ('chr.%s.' % args.chrom) in f and 'gen.coordinates.npy' in f])
+
+gen_files = sorted([f for f in listdir(args.data_dir) if ('chr.%s.' % args.chrom) in f and 'gen.npz' in f])
+for gen_file in gen_files:
+    batch_num = int(gen_file.split('.')[2])
+
+    out_file = '%s/chr.%s.%d.famgen.counts.txt' % (args.out_dir, args.chrom, batch_num)
+    print('saving to %s' % out_file)
 
     # pull snp positions
-    pos_data = np.vstack([np.load('%s/%s' % (args.data_dir, coord_file)) for coord_file in coord_files])
+    pos_data = np.load('%s/chr.%s.%d.gen.coordinates.npy' % (args.data_dir, args.chrom, batch_num))
     is_snp = pos_data[:, 2].astype(bool)
     is_pass = pos_data[:, 3].astype(bool)
 
@@ -101,35 +101,38 @@ with open(out_file, 'w+') as f:
     print('filtered by exclude', np.sum(~is_ok_exclude))
 
     # Pull data together
-    A = sparse.hstack([sparse.load_npz('%s/%s' % (args.data_dir, gen_file)) for gen_file in gen_files])
+    A = sparse.load_npz('%s/%s' % (args.data_dir, gen_file))
 
     # filter out snps
     A = A[:, is_snp & is_pass & is_ok_include & is_ok_exclude]
     print('genotype matrix prepared', A.shape)
 
-    for famkey, inds in families.items():
-        m = len(inds)
-        genotype_to_counts = np.zeros((4,)*m, dtype=int)
-        indices = [sample_id_to_index[ind] for ind in inds]
-        family_genotypes = A[indices, :]
-        
-        # remove positions where whole family is homref
-        has_data = sorted(set(family_genotypes.nonzero()[1]))
-        num_hom_ref = family_genotypes.shape[1] - len(has_data)
+    with open(out_file, 'w+') as f: 
+        for famkey, inds in families.items():
+            m = len(inds)
+            genotype_to_counts = np.zeros((4,)*m, dtype=int)
+            indices = [sample_id_to_index[ind] for ind in inds]
+            family_genotypes = A[indices, :]
+            
+            # remove positions where whole family is homref
+            has_data = sorted(set(family_genotypes.nonzero()[1]))
+            num_hom_ref = family_genotypes.shape[1] - len(has_data)
 
-        family_genotypes = family_genotypes[:, has_data].A
-        #print(famkey, family_genotypes.shape)
+            family_genotypes = family_genotypes[:, has_data].A
+            #print(famkey, family_genotypes.shape)
 
-        # recode missing values
-        family_genotypes[family_genotypes<0] = 3
-        
-        # fill in genotype_to_counts
-        unique_gens, counts = np.unique(family_genotypes, return_counts=True, axis=1)
-        for g, c in zip(unique_gens.T, counts):
-            genotype_to_counts[tuple(g)] += c
-        genotype_to_counts[(0,)*m] = num_hom_ref
+            # recode missing values
+            family_genotypes[family_genotypes<0] = 3
+            
+            # fill in genotype_to_counts
+            unique_gens, counts = np.unique(family_genotypes, return_counts=True, axis=1)
+            for g, c in zip(unique_gens.T, counts):
+                genotype_to_counts[tuple(g)] += c
 
-        # write to file
-        f.write('\t'.join([famkey[0], '.'.join(inds)] + \
-            [str(genotype_to_counts[g]) for g in product([0, 1, 2, 3], repeat=m)]) + '\n')
+            # add hom ref sites (that were previously removed)
+            genotype_to_counts[(0,)*m] = num_hom_ref
+
+            # write to file
+            f.write('\t'.join([famkey[0], '.'.join(inds)] + \
+                [str(genotype_to_counts[g]) for g in product([0, 1, 2, 3], repeat=m)]) + '\n')
         

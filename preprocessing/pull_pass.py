@@ -23,12 +23,11 @@ elif len(sys.argv)>2 and sys.argv[2] == '--pass_from_qual':
 
 chroms = [str(x) for x in range(1, 23)] + ['X', 'Y']
 
-def calculate_af_and_percent_miss(chrom, indices=None):
+def calculate_af_and_percent_miss(gen_file, indices=None):
     # load genotypes
-    gen_files = sorted([f for f in listdir(data_dir) if ('chr.%s.' % chrom) in f and 'gen.npz' in f])
 
     # Pull data together
-    A = sparse.hstack([sparse.load_npz('%s/%s' % (data_dir, gen_file)) for gen_file in gen_files])
+    A = sparse.load_npz('%s/%s' % (data_dir, gen_file))
 
     if indices is None:
         indices = np.ones((A.shape[0]), dtype=bool)
@@ -48,56 +47,60 @@ def calculate_af_and_percent_miss(chrom, indices=None):
 for chrom in chroms:
     print(chrom, end=' ')
 
-    # pull snp positions
-    pos_data = np.load('%s/chr.%s.gen.coordinates.npy' % (data_dir, chrom))  
-    
-    if pass_from_gen:
-        # pull male/female indices
-        with open('%s/chr.%s.gen.samples.txt' % (data_dir, chrom), 'r') as f:
-            sample_ids = [x.strip() for x in f]
+    gen_files = sorted([f for f in listdir(data_dir) if ('chr.%s.' % chrom) in f and 'gen.npz' in f])
+    for gen_file in gen_files:
+        batch_num = int(gen_file.split('.')[2])
 
-        sample_id_to_sex = dict()
-        # Sex (1=male; 2=female; other=unknown)
-        with open(ped_file, 'r') as f:
-            for line in f:
-                pieces = line.strip().split('\t')
-                if len(pieces) >= 6:
-                    fam_id, sample_id, f_id, m_id, sex, disease_status = pieces[0:6]
-                    sample_id_to_sex[sample_id] = sex
-        is_male = np.array([x in sample_id_to_sex and sample_id_to_sex[x]=='1' for x in sample_ids], dtype=bool)
-        is_female = np.array([x in sample_id_to_sex and sample_id_to_sex[x]=='2' for x in sample_ids], dtype=bool)
+        # pull snp positions
+        pos_data = np.load('%s/chr.%s.%d.gen.coordinates.npy' % (data_dir, chrom, batch_num))
+        
+        if pass_from_gen:
+            # pull male/female indices
+            with open('%s/chr.%s.gen.samples.txt' % (data_dir, chrom), 'r') as f:
+                sample_ids = [x.strip() for x in f]
 
-        if chrom == 'X':
-            af_f, percent_miss_f = calculate_af_and_percent_miss(chrom, indices=is_female)
-            af_m, percent_miss_m = calculate_af_and_percent_miss(chrom, indices=is_male)
+            sample_id_to_sex = dict()
+            # Sex (1=male; 2=female; other=unknown)
+            with open(ped_file, 'r') as f:
+                for line in f:
+                    pieces = line.strip().split('\t')
+                    if len(pieces) >= 6:
+                        fam_id, sample_id, f_id, m_id, sex, disease_status = pieces[0:6]
+                        sample_id_to_sex[sample_id] = sex
+            is_male = np.array([x in sample_id_to_sex and sample_id_to_sex[x]=='1' for x in sample_ids], dtype=bool)
+            is_female = np.array([x in sample_id_to_sex and sample_id_to_sex[x]=='2' for x in sample_ids], dtype=bool)
 
-            is_pass = (percent_miss_f < 0.1) & (percent_miss_m < 0.2)
-            
-        elif chrom == 'Y':
-            af_m, percent_miss_m = calculate_af_and_percent_miss(chrom, indices=is_male)
-            is_pass = (percent_miss_m < 0.2)
+            if chrom == 'X':
+                af_f, percent_miss_f = calculate_af_and_percent_miss(gen_file, indices=is_female)
+                af_m, percent_miss_m = calculate_af_and_percent_miss(gen_file, indices=is_male)
+
+                is_pass = (percent_miss_f < 0.1) & (percent_miss_m < 0.2)
+                
+            elif chrom == 'Y':
+                af_m, percent_miss_m = calculate_af_and_percent_miss(gen_file, indices=is_male)
+                is_pass = (percent_miss_m < 0.2)
+            else:
+                af, percent_miss = calculate_af_and_percent_miss(gen_file)
+                is_pass = (percent_miss < 0.1)
+        elif pass_all:
+            is_pass = np.ones((pos_data.shape[0],), dtype=bool)
+        elif pass_from_qual:
+            is_pass = []
+            with gzip.open('%s/chr.%s.%d.gen.variants.txt.gz' % (data_dir, chrom, batch_num), 'rt') as f:
+                for line in f:
+                    pieces = line.strip().split('\t')
+                    is_pass.append(int(pieces[5]) >= cutoff)
+            is_pass = np.array(is_pass)
         else:
-            af, percent_miss = calculate_af_and_percent_miss(chrom)
-            is_pass = (percent_miss < 0.1)
-    elif pass_all:
-        is_pass = np.ones((pos_data.shape[0],), dtype=bool)
-    elif pass_from_qual:
-        is_pass = []
-        with gzip.open('%s/chr.%s.gen.variants.txt.gz' % (data_dir, chrom), 'rt') as f:
-            for line in f:
-                pieces = line.strip().split('\t')
-                is_pass.append(int(pieces[5]) >= cutoff)
-        is_pass = np.array(is_pass)
-    else:
-        is_pass = []
-        with gzip.open('%s/chr.%s.gen.variants.txt.gz' % (data_dir, chrom), 'rt') as f:
-            for line in f:
-                pieces = line.strip().split('\t')
-                is_pass.append(pieces[6] == 'PASS')
-        is_pass = np.array(is_pass)
-            
-    print(np.sum(is_pass), np.sum(is_pass)/is_pass.shape[0])
+            is_pass = []
+            with gzip.open('%s/chr.%s.%d.gen.variants.txt.gz' % (data_dir, chrom, batch_num), 'rt') as f:
+                for line in f:
+                    pieces = line.strip().split('\t')
+                    is_pass.append(pieces[6] == 'PASS')
+            is_pass = np.array(is_pass)
+                
+        print(np.sum(is_pass), np.sum(is_pass)/is_pass.shape[0])
 
-    chrom_int = 23 if chrom == 'X' else 24 if chrom == 'Y' else int(chrom)
-    np.save('%s/chr.%s.gen.coordinates.npy' % (data_dir, chrom), np.hstack((chrom_int*np.ones((pos_data.shape[0], 1), dtype=int), pos_data[:, 1:3], is_pass[:, np.newaxis])))
+        chrom_int = 23 if chrom == 'X' else 24 if chrom == 'Y' else int(chrom)
+        np.save('%s/chr.%s.%d.gen.coordinates.npy' % (data_dir, chrom, batch_num), np.hstack((chrom_int*np.ones((pos_data.shape[0], 1), dtype=int), pos_data[:, 1:3], is_pass[:, np.newaxis])))
 
