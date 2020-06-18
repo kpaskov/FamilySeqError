@@ -22,39 +22,39 @@ chrom_int = 23 if args.chrom == 'X' else 24 if args.chrom == 'Y' else 25 if args
 
 gen_mapping = {'./.': -1, '0/0': 0, '0|0': 0, '0/1': 1, '0|1': 1, '1/0': 1, '1|0': 1, '1/1': 2, '1|1': 2}
 
-# Pull data from vcf
-def process_vcf(f):
+def process_header(f):
+    # Skip header
+    line = next(f)
+    while line.startswith('##'):
+        line = next(f)
+
+    sample_ids = line.strip().split('\t')[9:]
+
+    if args.batch_num == 0:
+        with open('%s/chr.%s.gen.samples.txt' % (args.out_directory, args.chrom), 'w+') as sample_f:
+            # Pull sample_ids and write to file
+            sample_f.write('\n'.join(sample_ids))
+            print('Num individuals with genomic data', len(sample_ids))
+    line = next(f)
+
+    return len(sample_ids)
+
+def process_body(f, num_samples):
+    # enumerate all chrom options
+    chrom_options = [args.chrom, 'chr'+args.chrom]
+    if args.chrom == 'X':
+        chrom_options = chrom_options + ['23', 'chr23']
+    if args.chrom == 'Y':
+        chrom_options = chrom_options + ['24', 'chr24']
+    if args.chrom == 'MT':
+        chrom_options = chrom_options + ['25', 'chr25']
+
     data, indices, indptr, index = np.zeros((args.maxsize,), dtype=np.int8), np.zeros((args.maxsize,), dtype=int), [0], 0
 
     with gzip.open('%s/chr.%s.%d.gen.variants.txt.gz' % (args.out_directory, args.chrom, args.batch_num), 'wt') as variant_f:
-        # Skip header
-        line = next(f)
-        while line.startswith('##'):
-            line = next(f)
-
-        if args.batch_num == 0:
-            with open('%s/chr.%s.gen.samples.txt' % (args.out_directory, args.chrom), 'w+') as sample_f:
-                # Pull sample_ids and write to file
-                sample_ids = line.strip().split('\t')[9:]
-                sample_f.write('\n'.join(sample_ids))
-                print('Num individuals with genomic data', len(sample_ids))
-
-        # Pull genotypes from vcf
-        m = len(sample_ids)
-        
-        # enumerate all chrom options
-        chrom_options = [args.chrom, 'chr'+args.chrom]
-        if args.chrom == 'X':
-            chrom_options = chrom_options + ['23', 'chr23']
-        if args.chrom == 'Y':
-            chrom_options = chrom_options + ['24', 'chr24']
-        if args.chrom == 'MT':
-            chrom_options = chrom_options + ['25', 'chr25']
-        
-        line = next(f)
         num_lines_in_file = 0
         chrom_coord = []
-        for line in islice(f, args.batch_num*args.batch_size, (args.batch_num+1)*args.batch_size):
+        for line in f:
             pieces = line.split('\t', maxsplit=1)
 
             if pieces[0] in chrom_options:
@@ -82,13 +82,9 @@ def process_vcf(f):
                 indptr.append(index)
                 num_lines_in_file += 1
 
-                # If file has gotten really big, raise error.
-                if index+m >= args.maxsize:
-                    raise Exception('Maxsize too low. Increase maxsize and rerun.')
-
 
     if index>0:
-        gen = csc_matrix((data[:index], indices[:index], indptr), shape=(m, num_lines_in_file), dtype=np.int8)
+        gen = csc_matrix((data[:index], indices[:index], indptr), shape=(num_samples, num_lines_in_file), dtype=np.int8)
             
         # Save to file
         save_npz('%s/chr.%s.%d.gen' % (args.out_directory, args.chrom, args.batch_num), gen)
@@ -99,8 +95,18 @@ def process_vcf(f):
 
 if args.vcf_file.endswith('.gz'):
     with gzip.open(args.vcf_file, 'rt') as f:
-        process_vcf(f)
+        num_samples = process_header(f)
+
+        if args.batch_size is not None:
+            process_body(islice(f, args.batch_num*args.batch_size, (args.batch_num+1)*args.batch_size), num_samples)
+        else:
+            process_body(f, num_samples)
 else:
     with open(args.vcf_file, 'r') as f:
-        process_vcf(f)
+        num_samples = process_header(f)
+
+        if args.batch_size is not None:
+            process_body(islice(f, args.batch_num*args.batch_size, (args.batch_num+1)*args.batch_size), num_samples)
+        else:
+            process_body(f, num_samples)
 
