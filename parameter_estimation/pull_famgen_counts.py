@@ -130,6 +130,6 @@ with open(out_file, 'w+') as f:
         genotype_to_counts[(0,)*m] = num_hom_ref
 
         # write to file
-        f.write('\t'.join(['.'.join(famkey), '.'.join(inds)] + \
+        f.write('\t'.join([famkey[0], '.'.join(inds)] + \
             [str(genotype_to_counts[g]) for g in product([0, 1, 2, 3], repeat=m)]) + '\n')
         
