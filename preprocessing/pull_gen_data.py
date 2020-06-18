@@ -32,11 +32,12 @@ def process_vcf(f):
         while line.startswith('##'):
             line = next(f)
 
-        with open('%s/chr.%s.gen.samples.txt' % (args.out_directory, args.chrom), 'w+') as sample_f:
-            # Pull sample_ids and write to file
-            sample_ids = line.strip().split('\t')[9:]
-            sample_f.write('\n'.join(sample_ids))
-            print('Num individuals with genomic data', len(sample_ids))
+        if args.batch_num == 0:
+            with open('%s/chr.%s.gen.samples.txt' % (args.out_directory, args.chrom), 'w+') as sample_f:
+                # Pull sample_ids and write to file
+                sample_ids = line.strip().split('\t')[9:]
+                sample_f.write('\n'.join(sample_ids))
+                print('Num individuals with genomic data', len(sample_ids))
 
         # Pull genotypes from vcf
         m = len(sample_ids)
