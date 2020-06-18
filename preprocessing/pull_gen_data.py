@@ -52,12 +52,13 @@ def process_vcf(f):
         num_lines_in_file = 0
         current_line_index = 0
         chrom_coord = []
-        for j, line in enumerate(f):
+        for line in f:
             pieces = line.split('\t', maxsplit=1)
 
             if pieces[0] in chrom_options:
-
-                if (current_line_index >= args.batch_num*args.batch_size) and (current_line_index < (args.batch_num+1)*args.batch_size):
+                if current_line_index >= (args.batch_num+1)*args.batch_size:
+                    break
+                elif current_line_index >= args.batch_num*args.batch_size:
                     pieces = line.strip().split('\t')
                     format = pieces[8].strip().split(':')
 
