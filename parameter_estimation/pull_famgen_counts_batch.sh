@@ -4,11 +4,11 @@
 #SBATCH --job-name=famgen
 #SBATCH --output=logs/famgen_%a.out
 #SBATCH --error=logs/famgen_%a.err
-#SBATCH --array=1-22%15
+#SBATCH --array=1-22%7
 #SBATCH -p dpwall
-#SBATCH -D /oak/stanford/groups/dpwall/users/kpaskov/PhasingFamilies
+#SBATCH -D /oak/stanford/groups/dpwall/users/kpaskov/FamilySeqError
 #SBATCH -t 30:00:00
-#SBATCH --mem=8G
+#SBATCH --mem=64G
 
 module load py-numpy/1.14.3_py36
 module load py-scipy/1.1.0_py36
@@ -60,6 +60,14 @@ echo "My SLURM_ARRAY_TASK_ID is " $SLURM_ARRAY_TASK_ID
 
 # spark identicals
 #srun python3 parameter_estimation/pull_famgen_counts.py split_gen_spark data/spark_identicals.ped $SLURM_ARRAY_TASK_ID split_gen_spark_identicals
+
+# ------------------------ For sibpair paper ------------------------
+#srun python3 parameter_estimation/pull_famgen_counts.py ../PhasingFamilies/split_gen_ihart ../PhasingFamilies/data/v34.vcf.ped.quads.ped $SLURM_ARRAY_TASK_ID ../PhasingFamilies/split_gen_ihart_quads
+
+#srun python3 parameter_estimation/pull_famgen_counts.py ../PhasingFamilies/split_gen_spark ../PhasingFamilies/data/spark.ped.quads.ped $SLURM_ARRAY_TASK_ID ../PhasingFamilies/split_gen_spark_quads
+
+srun python3 parameter_estimation/pull_famgen_counts.py ../PhasingFamilies/split_gen_mssng ..\
+/PhasingFamilies/data/mssng_db6.vcf.ped.quads.ped $SLURM_ARRAY_TASK_ID ../PhasingFamilies/split_gen_mssng_quads
 
 # ------------------------ For deletions paper -----------------------    
 
