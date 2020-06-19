@@ -5,6 +5,7 @@ from itertools import product
 import cvxpy as cp
 from collections import Counter, defaultdict
 import json
+from os import listdir
 
 import argparse
 
@@ -58,51 +59,45 @@ mendelian_check = lambda x: x in mendelian_trios
 
 # ------------------------------------ Pull Data ------------------------------------
 
-family_chrom_to_counts = dict()
+family_to_counts = dict()
 family_to_inds = dict()
 for i, chrom in enumerate(chroms):
     print(chrom, end=' ')
     
-    with open('%s/chr.%s.famgen.counts.txt' % (args.data_dir, chrom), 'r') as f:
-        for line in f:
-            pieces = line.strip().split('\t')
-            famkey, inds = pieces[:2]
-            
-            if args.sample_names_have_period:
-            	# unfortunately, ssc uses . in their sample names
-                inds = inds.split('.')
-                inds = ['%s.%s' % (inds[i], inds[i+1]) for i in range(0, len(inds), 2)]
-            else:
-                inds = inds.split('.')
-
-            m = len(inds)
-
-            if m<=8:
-                if famkey not in family_to_inds:
-                    family_to_inds[famkey] = inds
-                else:
-                    assert family_to_inds[famkey] == inds
+    count_files = sorted([f for f in listdir(args.data_dir) if ('chr.%s.' % chrom) in f and 'famgen.counts.txt' in f])
+    for count_file in count_files:
+        with open('%s/%s' % (args.data_dir, count_file), 'r') as f:
+            for line in f:
+                pieces = line.strip().split('\t')
+                famkey, inds = pieces[:2]
                 
-                counts = np.zeros((len(obss),)*m, dtype=int)
-                for g, c in zip(product(range(len(obss)), repeat=m), pieces[2:]):
-                    counts[g] = int(c)
-                    
-                family_chrom_to_counts[(famkey, chrom)] = counts
+                if args.sample_names_have_period:
+                	# unfortunately, ssc uses . in their sample names
+                    inds = inds.split('.')
+                    inds = ['%s.%s' % (inds[i], inds[i+1]) for i in range(0, len(inds), 2)]
+                else:
+                    inds = inds.split('.')
 
+                m = len(inds)
+
+                if m<=8:
+
+                    counts = np.zeros((len(obss),)*m, dtype=int)
+                    for g, c in zip(product(range(len(obss)), repeat=m), pieces[2:]):
+                        counts[g] = int(c)
+
+                    if famkey in family_to_inds:
+                        assert family_to_inds[famkey] == inds
+                        counts += family_to_counts[famkey]
+                    else:
+                        family_to_inds[famkey] = inds
+                    
+                    family_to_counts[famkey] = counts
+
+famkeys = sorted(family_to_inds.keys())
+print('Families', len(famkeys))
 print('Families of each size', Counter([len(inds) for fkey, inds in family_to_inds.items()]))
 
-
-# filter families that have all chroms
-famkeys = []
-for famkey in set([x[0] for x in family_chrom_to_counts.keys()]):
-    has_chrom = np.array([(famkey, chrom) in family_chrom_to_counts for chrom in chroms])
-    if np.sum(has_chrom) == len(chroms):
-        famkeys.append(famkey)
-    else:
-        print('Missing chromosome counts', famkey, [chroms[i] for i in np.where(~has_chrom)[0]])
-famkeys = sorted(famkeys)
-
-print('Families', len(famkeys))
 
 
 # ------------------------------------ Poisson Regression ------------------------------------
@@ -261,7 +256,7 @@ for i, famkey in enumerate(famkeys):
             
         is_mendelian = get_mendelian(m)
         allowable_errors = [allowable_errors_parent]*2 + [allowable_errors_child]*(m-2)
-        counts = np.sum(np.array([family_chrom_to_counts[(famkey, chrom)] for chrom in chroms]), axis=0)
+        counts = family_to_counts[famkey]
 
         error_rates, lower_bounds = estimate_error_rates(is_mendelian, allowable_errors, counts)
 
