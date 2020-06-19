@@ -1,14 +1,16 @@
-import sys
+#!/bin/bash
+#
+#
+#SBATCH --job-name=pass
+#SBATCH --output=logs/clean.out
+#SBATCH --error=logs/clean.err
+#SBATCH -p dpwall
+#SBATCH -D /oak/stanford/groups/dpwall/users/kpaskov/FamilySeqError
+#SBATCH -t 1:00:00
+#SBATCH --mem=8G
+
+module load py-numpy/1.14.3_py36
+module load py-scipy/1.1.0_py36
 
 
-data_dir = sys.argv[1]
-chroms = [str(x) for x in range(1, 23)] + ['X', 'Y']
-
-for chrom in chroms:
-    print(chrom, end=' ')
-
-    with open('%s/chr.%s.gen.samples.txt' % (data_dir, chrom), 'r') as f:
-        sample_ids = [x.strip() for x in f]
-
-    with open('%s/chr.%s.gen.samples.txt' % (data_dir, chrom), 'w+') as f:
-    	f.write('\n'.join([x.split('_')[-1] for x in sample_ids]))
+srun python3 preprocessing/clean_spark_samples.py ../DATA/spark/genotypes
