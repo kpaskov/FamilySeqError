@@ -6,7 +6,7 @@ from itertools import product, islice
 import sys
 import argparse
 import gzip
-from pysam import VariantFile
+from pysam import VariantFile, TabixFile
 from collections.abc import Iterable
 
 parser = argparse.ArgumentParser(description='Pull genotypes.')
@@ -22,7 +22,7 @@ t0 = time.time()
 
 chrom_int = 23 if args.chrom == 'X' else 24 if args.chrom == 'Y' else 25 if args.chrom == 'MT' else int(args.chrom)
 
-gen_mapping = {(0, 0): 0, (0, 1): 1, (1, 0): 1, (1, 1): 2}
+gen_mapping = {'./.': -1, '0/0': 0, '0|0': 0, '0/1': 1, '0|1': 1, '1/0': 1, '1|0': 1, '1/1': 2, '1|1': 2}
 
 def process_header(vcf):
     sample_ids = vcf.header.samples
@@ -41,25 +41,30 @@ def process_body(records, sample_ids):
     with gzip.open('%s/chr.%s.%d.gen.variants.txt.gz' % (args.out_directory, args.chrom, args.batch_num), 'wt') as variant_f:
         num_lines_in_file = 0
         chrom_coord = []
-        for record in records:
+        for line in records:
+            pieces = line.strip().split('\t')
+            fmt = pieces[8].strip().split(':')
 
             # Write variant to file
-            variant_f.write('\t'.join(str(record).split(maxsplit=9)[:9]) + '\n')
+            variant_f.write('\t'.join(pieces[:9]) + '\n')
 
-            is_biallelic_snp = 1 if len(record.ref) == 1 and len(record.alts) == 1 and len(record.alts[0]) == 1 and record.ref != '.' and record.alts[0] != '.' else 0
-            is_pass = 'PASS' in record.filter.keys()
-            chrom_coord.append((chrom_int, int(record.pos), is_biallelic_snp, is_pass))
+            pos, _, ref, alt = pieces[1:5]
+            is_biallelic_snp = 1 if len(ref) == 1 and len(alt) == 1 and ref != '.' and alt != '.' else 0
+            is_pass = pieces[6] == 'PASS'
+            chrom_coord.append((chrom_int, int(pos), is_biallelic_snp, is_pass))
 
             # Pull out genotypes
-            for i, sample_id in enumerate(sample_ids):
-                gt = gen_mapping.get(record.samples[sample_id]['GT'], -1)
+            gen_index = fmt.index('GT')
+            for i, piece in enumerate(pieces[9:]):
+                segment = piece.split(':', maxsplit=gen_index+1)
+                gt = gen_mapping.get(segment[gen_index], -1) # For now we mark multi-base loci as unknown
+
                 if gt != 0:
                     indices[index] = i
                     data[index] = gt
                     index += 1
             indptr.append(index)
             num_lines_in_file += 1
-
 
     gen = csc_matrix((data[:index], indices[:index], indptr), shape=(len(sample_ids), num_lines_in_file), dtype=np.int8)
         
@@ -78,15 +83,16 @@ elif 'chr%s' % args.chrom in contigs:
     contig = contigs['chr%s' % args.chrom]
 else:
     raise Exception('Trouble finding contig', args.chrom, 'in', contig_names)
-
 print('Chrom length', contig.length)
+
+vcf = TabixFile(args.vcf_file, parser=None)
 if args.batch_size is not None:
     start_pos, end_pos = args.batch_num*args.batch_size, (args.batch_num+1)*args.batch_size
     print('Interval', start_pos, end_pos)
     if start_pos < contig.length:
-        process_body(vcf.fetch(contig=contig.name, start=start_pos, stop=end_pos), sample_ids)
+        process_body(vcf.fetch(reference=contig.name, start=start_pos, end=end_pos), sample_ids)
     else:
         print('Interval (%d-%d) is longer than chromosome (length=%d).' % (start_pos, end_pos, contig.length))
 else:
-    process_body(vcf.fetch(contig=contig.name), sample_ids)
+    process_body(vcf.fetch(reference=contig.name), sample_ids)
 
