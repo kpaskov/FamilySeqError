@@ -2,18 +2,19 @@ from collections import defaultdict
 import numpy as np
 from scipy.sparse import csc_matrix, save_npz
 import time
-import gzip
 from itertools import product, islice
 import sys
 import argparse
-import os
+import gzip
+from pysam import VariantFile
+from collections.abc import Iterable
 
 parser = argparse.ArgumentParser(description='Pull genotypes.')
 parser.add_argument('vcf_file', type=str, help='VCF file to pull from.')
 parser.add_argument('out_directory', type=str, help='Output directory.')
 parser.add_argument('chrom', type=str, help='Chromosome of interest.')
 parser.add_argument('--batch_size', type=int, default=None, help='Restrict number of positions per file to batch_size.')
-parser.add_argument('--batch_num', type=int, default=0, help='To be used along with batch_size to restrict number of positions per file. Will use positions[(batch_num*batch_size):((batch_num+1)*batch_size)]')
+parser.add_argument('--batch_num', type=int, default=0, help='To be used along with batch_size to restrict positions per file. Will include positions >= batch_num*batch_size and <= (batch_num+1)*batch_size')
 parser.add_argument('--maxsize', type=int, default=500000000, help='Amount of memory per block.')
 args = parser.parse_args()
 
@@ -21,95 +22,71 @@ t0 = time.time()
 
 chrom_int = 23 if args.chrom == 'X' else 24 if args.chrom == 'Y' else 25 if args.chrom == 'MT' else int(args.chrom)
 
-gen_mapping = {'./.': -1, '0/0': 0, '0|0': 0, '0/1': 1, '0|1': 1, '1/0': 1, '1|0': 1, '1/1': 2, '1|1': 2}
+gen_mapping = {(0, 0): 0, (0, 1): 1, (1, 0): 1, (1, 1): 2}
 
-def process_header(f):
-    # Skip header
-    line = next(f)
-    while line.startswith('##'):
-        line = next(f)
-
-    sample_ids = line.strip().split('\t')[9:]
+def process_header(vcf):
+    sample_ids = vcf.header.samples
 
     if args.batch_num == 0:
         with open('%s/chr.%s.gen.samples.txt' % (args.out_directory, args.chrom), 'w+') as sample_f:
             # Pull sample_ids and write to file
             sample_f.write('\n'.join(sample_ids))
             print('Num individuals with genomic data', len(sample_ids))
-    line = next(f)
+    return sample_ids, vcf.header.contigs
 
-    return len(sample_ids)
-
-def process_body(f, num_samples):
-    # enumerate all chrom options
-    chrom_options = [args.chrom, 'chr'+args.chrom]
-    if args.chrom == 'X':
-        chrom_options = chrom_options + ['23', 'chr23']
-    if args.chrom == 'Y':
-        chrom_options = chrom_options + ['24', 'chr24']
-    if args.chrom == 'MT':
-        chrom_options = chrom_options + ['25', 'chr25']
+def process_body(records, sample_ids):
 
     data, indices, indptr, index = np.zeros((args.maxsize,), dtype=np.int8), np.zeros((args.maxsize,), dtype=int), [0], 0
 
     with gzip.open('%s/chr.%s.%d.gen.variants.txt.gz' % (args.out_directory, args.chrom, args.batch_num), 'wt') as variant_f:
         num_lines_in_file = 0
         chrom_coord = []
-        for line in f:
-            pieces = line.split('\t', maxsplit=1)
+        for record in records:
 
-            if pieces[0] in chrom_options:
-                pieces = line.strip().split('\t')
-                format = pieces[8].strip().split(':')
+            # Write variant to file
+            variant_f.write('\t'.join(str(record).split(maxsplit=9)[:9]) + '\n')
 
-                # Write variant to file
-                variant_f.write('\t'.join(pieces[:9]) + '\n')
+            is_biallelic_snp = 1 if len(record.ref) == 1 and len(record.alts) == 1 and len(record.alts[0]) == 1 and record.ref != '.' and record.alts[0] != '.' else 0
+            is_pass = 'PASS' in record.filter.keys()
+            chrom_coord.append((chrom_int, int(record.pos), is_biallelic_snp, is_pass))
 
-                pos, _, ref, alt = pieces[1:5]
-                is_biallelic_snp = 1 if len(ref) == 1 and len(alt) == 1 and ref != '.' and alt != '.' else 0
-                is_pass = pieces[6] == 'PASS'
-                chrom_coord.append((chrom_int, int(pos), is_biallelic_snp, is_pass))
-
-                # Pull out genotypes
-                gen_index = format.index('GT')
-                for i, piece in enumerate(pieces[9:]):
-                    segment = piece.split(':', maxsplit=gen_index+1)
-                    gt = gen_mapping.get(segment[gen_index], -1) # For now we mark multi-base loci as unknown
-
-                    if gt != 0:
-                        indices[index] = i
-                        data[index] = gt
-                        index += 1
-                indptr.append(index)
-                num_lines_in_file += 1
+            # Pull out genotypes
+            for i, sample_id in enumerate(sample_ids):
+                gt = gen_mapping.get(record.samples[sample_id]['GT'], -1)
+                if gt != 0:
+                    indices[index] = i
+                    data[index] = gt
+                    index += 1
+            indptr.append(index)
+            num_lines_in_file += 1
 
 
-    if index>0:
-        gen = csc_matrix((data[:index], indices[:index], indptr), shape=(num_samples, num_lines_in_file), dtype=np.int8)
-            
-        # Save to file
-        save_npz('%s/chr.%s.%d.gen' % (args.out_directory, args.chrom, args.batch_num), gen)
-        np.save('%s/chr.%s.%d.gen.coordinates' % (args.out_directory, args.chrom, args.batch_num), np.asarray(chrom_coord, dtype=int))
-    else:
-        print('No data in batch.')
-        os.remove('%s/chr.%s.%d.gen.variants.txt.gz' % (args.out_directory, args.chrom, args.batch_num))
-
+    gen = csc_matrix((data[:index], indices[:index], indptr), shape=(len(sample_ids), num_lines_in_file), dtype=np.int8)
+        
+    # Save to file
+    save_npz('%s/chr.%s.%d.gen' % (args.out_directory, args.chrom, args.batch_num), gen)
+    np.save('%s/chr.%s.%d.gen.coordinates' % (args.out_directory, args.chrom, args.batch_num), np.asarray(chrom_coord, dtype=int))
     print('Completed in ', time.time()-t0, 'sec')
 
-if args.vcf_file.endswith('.gz'):
-    with gzip.open(args.vcf_file, 'rt') as f:
-        num_samples = process_header(f)
+vcf = VariantFile(args.vcf_file)
+sample_ids, contigs = process_header(vcf)
 
-        if args.batch_size is not None:
-            process_body(islice(f, args.batch_num*args.batch_size, (args.batch_num+1)*args.batch_size), num_samples)
-        else:
-            process_body(f, num_samples)
+contig = None
+if args.chrom in contigs:
+    contig = contigs[args.chrom]
+elif 'chr%s' % args.chrom in contigs:
+    contig = contigs['chr%s' % args.chrom]
 else:
-    with open(args.vcf_file, 'r') as f:
-        num_samples = process_header(f)
+    raise Exception('Trouble finding contig', args.chrom, 'in', contig_names)
 
-        if args.batch_size is not None:
-            process_body(islice(f, args.batch_num*args.batch_size, (args.batch_num+1)*args.batch_size), num_samples)
-        else:
-            process_body(f, num_samples)
+print('Chrom length', contig.length)
+if args.batch_size is not None:
+    start_pos, end_pos = args.batch_num*args.batch_size, (args.batch_num+1)*args.batch_size
+    print('Interval', start_pos, end_pos)
+    if start_pos < contig.length:
+        process_body(vcf.fetch(contig=contig.name, start=start_pos, stop=end_pos), sample_ids)
+    else:
+        print('Interval (%d-%d) is longer than chromosome (length=%d).' % (start_pos, end_pos, contig.length))
+else:
+    process_body(vcf.fetch(contig=contig.name), sample_ids)
 

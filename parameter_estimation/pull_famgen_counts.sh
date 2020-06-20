@@ -64,9 +64,11 @@ echo "My SLURM_ARRAY_TASK_ID is " $SLURM_ARRAY_TASK_ID
 # ------------------------ For sibpair paper ------------------------
 #srun python3 parameter_estimation/pull_famgen_counts.py ../PhasingFamilies/split_gen_ihart ../PhasingFamilies/data/v34.vcf.ped.quads.ped $SLURM_ARRAY_TASK_ID ../PhasingFamilies/split_gen_ihart_quads
 
-srun python3 parameter_estimation/pull_famgen_counts.py ../DATA/spark/genotypes ../DATA/spark/spark.ped.quads.ped $SLURM_ARRAY_TASK_ID ../DATA/spark/family_genotype_counts/quads
+#srun python3 parameter_estimation/pull_famgen_counts.py ../DATA/spark/genotypes ../DATA/spark/spark.ped.quads.ped $SLURM_ARRAY_TASK_ID ../DATA/spark/family_genotype_counts/quads
 
 #srun python3 parameter_estimation/pull_famgen_counts.py ../DATA/mssng/genotypes ../DATA/mssng/mssng_db6.vcf.ped.quads.ped $SLURM_ARRAY_TASK_ID ../DATA/mssng/family_genotype_counts/quads
+
+srun python3 parameter_estimation/pull_famgen_counts.py ../DATA/ancestry/genotypes ../DATA/ancestry/ancestryDNA.ped.quads.ped $SLURM_ARRAY_TASK_ID ../DATA/ancestry/family_genotype_counts/quads
 
 # ------------------------ For deletions paper -----------------------    
 

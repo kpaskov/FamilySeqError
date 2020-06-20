@@ -13,3 +13,5 @@ module load py-numpy/1.14.3_py36
 module load py-scipy/1.1.0_py36
 
 srun python3 parameter_estimation/estimate_parameters_per_individual.py ../DATA/spark/family_genotype_counts/quads params/spark_quads_params.json
+
+srun python3 parameter_estimation/estimate_parameters_per_individual.py ../DATA/ancestry/family_genotype_counts/quads params/ancestry_quads_params.json
