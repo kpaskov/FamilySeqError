@@ -21,12 +21,12 @@ missing_files = []
 for chrom in chroms:
 	# pull contig length
 	contig = None
-	if args.chrom in contigs:
-	    contig = contigs[args.chrom]
-	elif 'chr%s' % args.chrom in contigs:
-	    contig = contigs['chr%s' % args.chrom]
+	if chrom in contigs:
+	    contig = contigs[chrom]
+	elif 'chr%s' % chrom in contigs:
+	    contig = contigs['chr%s' % chrom]
 	else:
-	    raise Exception('Trouble finding contig', args.chrom, 'in', contig_names)
+	    raise Exception('Trouble finding contig', chrom, 'in', contig_names)
 	print('Chrom %s length %d' % (chrom, contig.length))
 
 
