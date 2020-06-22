@@ -37,10 +37,9 @@ def process_header(vcf):
 def process_body(records, sample_ids):
 
     data, indices, indptr, index = np.zeros((args.maxsize,), dtype=np.int8), np.zeros((args.maxsize,), dtype=int), [0], 0
+    chrom_coord = []
 
     with gzip.open('%s/chr.%s.%d.gen.variants.txt.gz' % (args.out_directory, args.chrom, args.batch_num), 'wt') as variant_f:
-        num_lines_in_file = 0
-        chrom_coord = []
         for line in records:
             pieces = line.strip().split('\t')
             fmt = pieces[8].strip().split(':')
@@ -48,12 +47,13 @@ def process_body(records, sample_ids):
             # Write variant to file
             variant_f.write('\t'.join(pieces[:9]) + '\n')
 
+            # pull chrom_coord information
             pos, _, ref, alt = pieces[1:5]
             is_biallelic_snp = 1 if len(ref) == 1 and len(alt) == 1 and ref != '.' and alt != '.' else 0
             is_pass = pieces[6] == 'PASS'
             chrom_coord.append((chrom_int, int(pos), is_biallelic_snp, is_pass))
 
-            # Pull out genotypes
+            # pull genotypes
             gen_index = fmt.index('GT')
             for i, piece in enumerate(pieces[9:]):
                 segment = piece.split(':', maxsplit=gen_index+1)
@@ -64,9 +64,8 @@ def process_body(records, sample_ids):
                     data[index] = gt
                     index += 1
             indptr.append(index)
-            num_lines_in_file += 1
 
-    gen = csc_matrix((data[:index], indices[:index], indptr), shape=(len(sample_ids), num_lines_in_file), dtype=np.int8)
+    gen = csc_matrix((data[:index], indices[:index], indptr), shape=(len(sample_ids), len(indptr)-1), dtype=np.int8)
         
     # Save to file
     save_npz('%s/chr.%s.%d.gen' % (args.out_directory, args.chrom, args.batch_num), gen)

@@ -73,7 +73,7 @@ with open(args.ped_file, 'r') as f:
 print('families %d' % len(families))
 
 
-gen_files = sorted([f for f in listdir(args.data_dir) if ('chr.%s.' % args.chrom) in f and 'gen.npz' in f])
+gen_files = sorted([f for f in listdir(args.data_dir) if ('chr.%s.' % args.chrom) in f and 'gen.npz' in f], lambda x: int(x.split('.')[2]))
 for gen_file in gen_files:
     batch_num = int(gen_file.split('.')[2])
 
