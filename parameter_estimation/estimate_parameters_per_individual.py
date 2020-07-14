@@ -86,13 +86,13 @@ for i, chrom in enumerate(chroms):
                     for g, c in zip(product(range(len(obss)), repeat=m), pieces[2:]):
                         counts[g] = int(c)
 
-                    if famkey in family_to_inds:
-                        assert family_to_inds[famkey] == inds
-                        counts += family_to_counts[famkey]
+                    if (famkey, inds[0], inds[1]) in family_to_inds:
+                        assert family_to_inds[(famkey, inds[0], inds[1])] == inds
+                        counts += family_to_counts[(famkey, inds[0], inds[1])]
                     else:
-                        family_to_inds[famkey] = inds
+                        family_to_inds[(famkey, inds[0], inds[1])] = inds
                     
-                    family_to_counts[famkey] = counts
+                    family_to_counts[(famkey, inds[0], inds[1])] = counts
 
 famkeys = sorted(family_to_inds.keys())
 print('Families', len(famkeys))
@@ -270,7 +270,7 @@ for i, famkey in enumerate(famkeys):
             add_expected_counts(ind_params)
             add_precision_recall(ind_params)
 
-            params[famkey + '.' + inds[j]] = ind_params
+            params['.'.join(famkey) + '.' + inds[j]] = ind_params
 
     except Exception as err:
         num_error_families += 1

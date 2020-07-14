@@ -80,59 +80,60 @@ for gen_file in gen_files:
     out_file = '%s/chr.%s.%d.famgen.counts.txt' % (args.out_dir, args.chrom, batch_num)
     print('saving to %s' % out_file)
 
-    # pull snp positions
     pos_data = np.load('%s/chr.%s.%d.gen.coordinates.npy' % (args.data_dir, args.chrom, batch_num))
-    is_snp = pos_data[:, 2].astype(bool)
-    is_pass = pos_data[:, 3].astype(bool)
+    if pos_data.shape[0]>0:
+        is_snp = pos_data[:, 2].astype(bool)
+        is_pass = pos_data[:, 3].astype(bool)
 
-    is_ok_include = np.ones(is_snp.shape, dtype=bool)
-    if include_regions is not None:
-        insert_loc = np.searchsorted(include_regions, pos_data[:, 1])
-        is_ok_include = np.remainder(insert_loc, 2)==1
+        is_ok_include = np.ones(is_snp.shape, dtype=bool)
+        if include_regions is not None:
+            insert_loc = np.searchsorted(include_regions, pos_data[:, 1])
+            is_ok_include = np.remainder(insert_loc, 2)==1
 
-    is_ok_exclude = np.ones(is_snp.shape, dtype=bool)
-    if exclude_regions is not None:
-        insert_loc = np.searchsorted(exclude_regions, pos_data[:, 1])
-        is_ok_exclude = np.remainder(insert_loc, 2)==0
+        is_ok_exclude = np.ones(is_snp.shape, dtype=bool)
+        if exclude_regions is not None:
+            insert_loc = np.searchsorted(exclude_regions, pos_data[:, 1])
+            is_ok_exclude = np.remainder(insert_loc, 2)==0
 
-    print('not SNP', np.sum(~is_snp))
-    print('not PASS', np.sum(~is_pass))
-    print('filtered by include', np.sum(~is_ok_include))
-    print('filtered by exclude', np.sum(~is_ok_exclude))
+        print('not SNP', np.sum(~is_snp))
+        print('not PASS', np.sum(~is_pass))
+        print('filtered by include', np.sum(~is_ok_include))
+        print('filtered by exclude', np.sum(~is_ok_exclude))
 
-    # Pull data together
-    A = sparse.load_npz('%s/%s' % (args.data_dir, gen_file))
+        # Pull data together
+        A = sparse.load_npz('%s/%s' % (args.data_dir, gen_file))
 
-    # filter out snps
-    A = A[:, is_snp & is_pass & is_ok_include & is_ok_exclude]
-    print('genotype matrix prepared', A.shape)
+        # filter out snps
+        A = A[:, is_snp & is_pass & is_ok_include & is_ok_exclude]
+        print('genotype matrix prepared', A.shape)
 
-    with open(out_file, 'w+') as f: 
-        for famkey, inds in families.items():
-            m = len(inds)
-            genotype_to_counts = np.zeros((4,)*m, dtype=int)
-            indices = [sample_id_to_index[ind] for ind in inds]
-            family_genotypes = A[indices, :]
+        if A.shape[1]>0:
+            with open(out_file, 'w+') as f: 
+                for famkey, inds in families.items():
+                    m = len(inds)
+                    genotype_to_counts = np.zeros((4,)*m, dtype=int)
+                    indices = [sample_id_to_index[ind] for ind in inds]
+                    family_genotypes = A[indices, :]
+                    
+                    # remove positions where whole family is homref
+                    has_data = sorted(set(family_genotypes.nonzero()[1]))
+                    num_hom_ref = family_genotypes.shape[1] - len(has_data)
+
+                    family_genotypes = family_genotypes[:, has_data].A
+                    #print(famkey, family_genotypes.shape)
+
+                    # recode missing values
+                    family_genotypes[family_genotypes<0] = 3
+                    
+                    # fill in genotype_to_counts
+                    unique_gens, counts = np.unique(family_genotypes, return_counts=True, axis=1)
+                    for g, c in zip(unique_gens.T, counts):
+                        genotype_to_counts[tuple(g)] += c
+
+                    # add hom ref sites (that were previously removed)
+                    genotype_to_counts[(0,)*m] = num_hom_ref
+
+                    # write to file
+                    f.write('\t'.join([famkey[0], '.'.join(inds)] + \
+                        [str(genotype_to_counts[g]) for g in product([0, 1, 2, 3], repeat=m)]) + '\n')
             
-            # remove positions where whole family is homref
-            has_data = sorted(set(family_genotypes.nonzero()[1]))
-            num_hom_ref = family_genotypes.shape[1] - len(has_data)
-
-            family_genotypes = family_genotypes[:, has_data].A
-            #print(famkey, family_genotypes.shape)
-
-            # recode missing values
-            family_genotypes[family_genotypes<0] = 3
-            
-            # fill in genotype_to_counts
-            unique_gens, counts = np.unique(family_genotypes, return_counts=True, axis=1)
-            for g, c in zip(unique_gens.T, counts):
-                genotype_to_counts[tuple(g)] += c
-
-            # add hom ref sites (that were previously removed)
-            genotype_to_counts[(0,)*m] = num_hom_ref
-
-            # write to file
-            f.write('\t'.join([famkey[0], '.'.join(inds)] + \
-                [str(genotype_to_counts[g]) for g in product([0, 1, 2, 3], repeat=m)]) + '\n')
-        

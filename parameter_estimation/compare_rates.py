@@ -3,6 +3,7 @@ from collections import defaultdict, Counter, namedtuple
 from itertools import product
 import scipy.stats
 import json
+from os import listdir
 
 BaselineCounts = namedtuple('BaselineCounts', ['counts', 'samples', 'families', 'family_sizes', 'is_child', 'is_mom', 'is_dad'])
 Samples = namedtuple('Samples', ['sample_ids', 'families', 'family_sizes', 'is_child', 'is_mom', 'is_dad'])
@@ -14,38 +15,44 @@ def pull_samples(data_dir, chroms, dot_in_name=False):
     sample_to_family = dict()
     family_to_size = dict()
     children, moms, dads = set(), set(), set()
+    chrom_batches = set()
     
     # pull counts from famgen
     for i, chrom in enumerate(chroms):
         print(chrom, end=' ')
 
-        with open('%s/chr.%s.famgen.counts.txt' % (data_dir, chrom), 'r') as f:
-            for line in f:
-                pieces = line.strip().split('\t')
-                famkey, inds = pieces[:2]
-                #famkey = famkey.split('.')[0]
+        famgen_files = sorted([f for f in listdir(data_dir) if ('chr.%s.' % chrom) in f and '.famgen.counts.txt' in f], key=lambda x: int(x.split('.')[2]))
+        for famgen_file in famgen_files:
+            batch_num = int(famgen_file.split('.')[2])
 
-                if dot_in_name:
-                    # unfortunately, ssc uses . in their sample names
-                    inds = inds.split('.')
-                    inds = ['%s.%s' % (inds[i], inds[i+1]) for i in range(0, len(inds), 2)]
-                else:
-                    inds = inds.split('.')
-                    
-                m = len(inds)
-                family_to_size[famkey] = m
-                for ind in inds:
-                    sample_to_chroms[ind].add(chrom)
-                    sample_to_family[ind] = famkey
+            with open('%s/%s' % (data_dir, famgen_file), 'r') as f:
+                for line in f:
+                    pieces = line.strip().split('\t')
+                    famkey, inds = pieces[:2]
+                    #famkey = famkey.split('.')[0]
 
-                moms.add(inds[0])
-                dads.add(inds[1])
-                children.update(inds[2:])    
+                    if dot_in_name:
+                        # unfortunately, ssc uses . in their sample names
+                        inds = inds.split('.')
+                        inds = ['%s.%s' % (inds[i], inds[i+1]) for i in range(0, len(inds), 2)]
+                    else:
+                        inds = inds.split('.')
+                        
+                    m = len(inds)
+                    family_to_size[famkey] = m
+                    for ind in inds:
+                        sample_to_chroms[ind].add((chrom, batch_num))
+                        sample_to_family[ind] = famkey
+                        chrom_batches.add((chrom, batch_num))
+
+                    moms.add(inds[0])
+                    dads.add(inds[1])
+                    children.update(inds[2:])    
             
     multigen = children & (moms | dads)
     print('\nRemoving %d individuals involved in multiple generations' % len(multigen))
     
-    missing_chroms = set([x for x, chrs in sample_to_chroms.items() if len(chrs) != len(chroms)])
+    missing_chroms = set([x for x, chrs in sample_to_chroms.items() if len(chrs) != len(chrom_batches)])
     print('Removing %d individuals missing chromosomal data' % len(missing_chroms))
     
     children = children - multigen - missing_chroms
