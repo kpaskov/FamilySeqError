@@ -13,7 +13,6 @@ parser = argparse.ArgumentParser(description='Estimate parameters.')
 parser.add_argument('data_dir', type=str, help='Directory of genotype data in .npy format.')
 parser.add_argument('out_file', type=str, help='Output file.')
 parser.add_argument('--is_ngs', action='store_true', default=False, help='True if this data is NGS. The important point is whether or not sites where all individuals are homozygous reference are sometimes dropped from the VCF. If this happens, use flag --is_ngs')
-parser.add_argument('--sample_names_have_period', action='store_true', default=False, help='If sample names include periods, we have to do a special parse.')
 args = parser.parse_args()
 
 chroms = [str(x) for x in range(1, 23)]
@@ -71,13 +70,7 @@ for i, chrom in enumerate(chroms):
                 pieces = line.strip().split('\t')
                 famkey, inds = pieces[:2]
                 
-                if args.sample_names_have_period:
-                	# unfortunately, ssc uses . in their sample names
-                    inds = inds.split('.')
-                    inds = ['%s.%s' % (inds[i], inds[i+1]) for i in range(0, len(inds), 2)]
-                else:
-                    inds = inds.split('.')
-
+                inds = inds.split('.')
                 m = len(inds)
 
                 if m<=8:

@@ -64,7 +64,8 @@ with open(args.ped_file, 'r') as f:
         if len(pieces) < 4:
             print('ped parsing error', line)
         else:
-            fam_id, child_id, f_id, m_id = pieces[0:4]
+            fam_id = pieces[0]
+            child_id, f_id, m_id = [x.replace('.', '_') for x in pieces[1:4]]
 
             if child_id in sample_id_to_index and f_id in sample_id_to_index and m_id in sample_id_to_index:
                 if (fam_id, m_id, f_id) not in families:
