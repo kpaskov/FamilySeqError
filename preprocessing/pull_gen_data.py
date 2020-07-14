@@ -25,7 +25,7 @@ chrom_int = 23 if args.chrom == 'X' else 24 if args.chrom == 'Y' else 25 if args
 gen_mapping = {'./.': -1, '0/0': 0, '0|0': 0, '0/1': 1, '0|1': 1, '1/0': 1, '1|0': 1, '1/1': 2, '1|1': 2}
 
 def process_header(vcf):
-    sample_ids = vcf.header.samples
+    sample_ids = [x.replace('.', '_') for x in vcf.header.samples]
 
     if args.batch_num == 0:
         with open('%s/chr.%s.gen.samples.txt' % (args.out_directory, args.chrom), 'w+') as sample_f:
