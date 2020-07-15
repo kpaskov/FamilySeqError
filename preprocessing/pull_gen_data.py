@@ -1,16 +1,14 @@
-from collections import defaultdict
 import numpy as np
 from scipy.sparse import csc_matrix, save_npz
 import time
-from itertools import product, islice
-import sys
 import argparse
 import gzip
 from pysam import VariantFile, TabixFile
-from collections.abc import Iterable
+import json
 
 parser = argparse.ArgumentParser(description='Pull genotypes.')
 parser.add_argument('vcf_file', type=str, help='VCF file to pull from.')
+parser.add_argument('assembly', type=str, help='Human genome reference used.')
 parser.add_argument('out_directory', type=str, help='Output directory.')
 parser.add_argument('chrom', type=str, help='Chromosome of interest.')
 parser.add_argument('--batch_size', type=int, default=None, help='Restrict number of positions per file to batch_size.')
@@ -71,6 +69,9 @@ def process_body(records, sample_ids):
     save_npz('%s/chr.%s.%d.gen' % (args.out_directory, args.chrom, args.batch_num), gen)
     np.save('%s/chr.%s.%d.gen.coordinates' % (args.out_directory, args.chrom, args.batch_num), np.asarray(chrom_coord, dtype=int))
     print('Completed in ', time.time()-t0, 'sec')
+
+with open('%s/info.json' % args.out_directory, 'w+') as f:
+    json.dump(f, {'assembly': args.assembly, 'batch_size': args.batch_size, 'vcf_directory': '/'.join(args.vcf_file.split('/')[:-1])})
 
 vcf = VariantFile(args.vcf_file)
 sample_ids, contigs = process_header(vcf)

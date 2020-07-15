@@ -4,6 +4,7 @@ from os import listdir
 import numpy as np
 import scipy.sparse as sparse
 import argparse
+import json
 
 parser = argparse.ArgumentParser(description='Pull family genotype counts.')
 parser.add_argument('data_dir', type=str, help='Directory of genotype data in .npy format.')
@@ -26,6 +27,12 @@ if args.chrom == '25':
 sample_file = '%s/chr.%s.gen.samples.txt' % (args.data_dir, args.chrom)
 
 obss = ['0/0', '0/1', '1/1', './.']
+
+with open('%s/info.json' % args.data_dir, 'r') as f:
+    info = json.load(f)
+
+with open('%s/info.json' % args.out_dir, 'w+') as f:
+    json.dump(f, info)
 
 def process_bedfile(bed_file):
     regions = []
