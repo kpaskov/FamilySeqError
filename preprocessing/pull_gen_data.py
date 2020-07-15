@@ -71,7 +71,7 @@ def process_body(records, sample_ids):
     print('Completed in ', time.time()-t0, 'sec')
 
 with open('%s/info.json' % args.out_directory, 'w+') as f:
-    json.dump(f, {'assembly': args.assembly, 'batch_size': args.batch_size, 'vcf_directory': '/'.join(args.vcf_file.split('/')[:-1])})
+    json.dump({'assembly': args.assembly, 'batch_size': args.batch_size, 'vcf_directory': '/'.join(args.vcf_file.split('/')[:-1])}, f)
 
 vcf = VariantFile(args.vcf_file)
 sample_ids, contigs = process_header(vcf)
