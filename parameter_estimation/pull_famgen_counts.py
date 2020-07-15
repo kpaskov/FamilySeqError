@@ -108,11 +108,12 @@ for gen_file in gen_files:
         A = A[:, is_snp & is_pass & is_ok_include & is_ok_exclude]
         print('genotype matrix prepared', A.shape)
 
-        if A.shape[1]>0:
-            with open(out_file, 'w+') as f: 
-                for famkey, inds in families.items():
-                    m = len(inds)
-                    genotype_to_counts = np.zeros((4,)*m, dtype=int)
+        with open(out_file, 'w+') as f: 
+            for famkey, inds in families.items():
+                m = len(inds)
+                genotype_to_counts = np.zeros((4,)*m, dtype=int)
+
+                if A.shape[1]>0:    
                     indices = [sample_id_to_index[ind] for ind in inds]
                     family_genotypes = A[indices, :]
                     
@@ -134,7 +135,7 @@ for gen_file in gen_files:
                     # add hom ref sites (that were previously removed)
                     genotype_to_counts[(0,)*m] = num_hom_ref
 
-                    # write to file
-                    f.write('\t'.join([famkey[0], '.'.join(inds)] + \
-                        [str(genotype_to_counts[g]) for g in product([0, 1, 2, 3], repeat=m)]) + '\n')
+                # write to file
+                f.write('\t'.join([famkey[0], '.'.join(inds)] + \
+                    [str(genotype_to_counts[g]) for g in product([0, 1, 2, 3], repeat=m)]) + '\n')
             
