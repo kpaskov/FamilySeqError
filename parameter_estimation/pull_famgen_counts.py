@@ -32,7 +32,7 @@ with open('%s/info.json' % args.data_dir, 'r') as f:
     info = json.load(f)
 
 with open('%s/info.json' % args.out_dir, 'w+') as f:
-    json.dump(f, info)
+    json.dump(info, f)
 
 def process_bedfile(bed_file):
     regions = []
