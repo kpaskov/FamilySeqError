@@ -107,35 +107,37 @@ for gen_file in gen_files:
         # filter out snps
         A = A[:, is_snp & is_pass & is_ok_include & is_ok_exclude]
         print('genotype matrix prepared', A.shape)
+    else:
+        A = np.zeros((0, 0))
 
-        with open(out_file, 'w+') as f: 
-            for famkey, inds in families.items():
-                m = len(inds)
-                genotype_to_counts = np.zeros((4,)*m, dtype=int)
+    with open(out_file, 'w+') as f: 
+        for famkey, inds in families.items():
+            m = len(inds)
+            genotype_to_counts = np.zeros((4,)*m, dtype=int)
 
-                if A.shape[1]>0:    
-                    indices = [sample_id_to_index[ind] for ind in inds]
-                    family_genotypes = A[indices, :]
+            if A.shape[1]>0:    
+                indices = [sample_id_to_index[ind] for ind in inds]
+                family_genotypes = A[indices, :]
                     
-                    # remove positions where whole family is homref
-                    has_data = sorted(set(family_genotypes.nonzero()[1]))
-                    num_hom_ref = family_genotypes.shape[1] - len(has_data)
+                # remove positions where whole family is homref
+                has_data = sorted(set(family_genotypes.nonzero()[1]))
+                num_hom_ref = family_genotypes.shape[1] - len(has_data)
 
-                    family_genotypes = family_genotypes[:, has_data].A
-                    #print(famkey, family_genotypes.shape)
+                family_genotypes = family_genotypes[:, has_data].A
+                #print(famkey, family_genotypes.shape)
 
-                    # recode missing values
-                    family_genotypes[family_genotypes<0] = 3
+                # recode missing values
+                family_genotypes[family_genotypes<0] = 3
                     
-                    # fill in genotype_to_counts
-                    unique_gens, counts = np.unique(family_genotypes, return_counts=True, axis=1)
-                    for g, c in zip(unique_gens.T, counts):
-                        genotype_to_counts[tuple(g)] += c
+                # fill in genotype_to_counts
+                unique_gens, counts = np.unique(family_genotypes, return_counts=True, axis=1)
+                for g, c in zip(unique_gens.T, counts):
+                    genotype_to_counts[tuple(g)] += c
 
-                    # add hom ref sites (that were previously removed)
-                    genotype_to_counts[(0,)*m] = num_hom_ref
+                # add hom ref sites (that were previously removed)
+                genotype_to_counts[(0,)*m] = num_hom_ref
 
-                # write to file
-                f.write('\t'.join([famkey[0], '.'.join(inds)] + \
-                    [str(genotype_to_counts[g]) for g in product([0, 1, 2, 3], repeat=m)]) + '\n')
+            # write to file
+            f.write('\t'.join([famkey[0], '.'.join(inds)] + \
+                [str(genotype_to_counts[g]) for g in product([0, 1, 2, 3], repeat=m)]) + '\n')
             
