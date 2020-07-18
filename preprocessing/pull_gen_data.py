@@ -121,11 +121,11 @@ if args.batch_size is not None:
     start_pos, end_pos = args.batch_num*args.batch_size, (args.batch_num+1)*args.batch_size
     print('Interval', start_pos, end_pos)
     if start_pos < contig.length:
-        process_body(itertools.chain([vcf.fetch(reference=contig.name, start=start_pos, end=end_pos) for vcf in vcfs]), sample_ids)
+        process_body(itertools.chain(*[vcf.fetch(reference=contig.name, start=start_pos, end=end_pos) for vcf in vcfs]), sample_ids)
     else:
         print('Interval (%d-%d) is longer than chromosome (length=%d).' % (start_pos, end_pos, contig.length))
 else:
-    process_body(itertools.chain([vcf.fetch(reference=contig.name) for vcf in vcf]), sample_ids)
+    process_body(itertools.chain(*[vcf.fetch(reference=contig.name) for vcf in vcf]), sample_ids)
 
 
 
