@@ -1,10 +1,11 @@
 import numpy as np
-from scipy.sparse import csc_matrix, save_npz
+from scipy.sparse import csc_matrix, save_npz, hstack
 import time
 import argparse
 import gzip
 from pysam import VariantFile, TabixFile
 import json
+import os
 
 parser = argparse.ArgumentParser(description='Pull genotypes.')
 parser.add_argument('vcf_file', type=str, help='VCF file to pull from.')
@@ -14,6 +15,7 @@ parser.add_argument('chrom', type=str, help='Chromosome of interest.')
 parser.add_argument('--batch_size', type=int, default=None, help='Restrict number of positions per file to batch_size.')
 parser.add_argument('--batch_num', type=int, default=0, help='To be used along with batch_size to restrict positions per file. Will include positions >= batch_num*batch_size and <= (batch_num+1)*batch_size')
 parser.add_argument('--maxsize', type=int, default=500000000, help='Amount of memory per block.')
+parser.add_argument('--additional_vcf_files', type=str, nargs='+', help='Additional VCF files to pull data from.')
 args = parser.parse_args()
 
 t0 = time.time()
@@ -64,17 +66,23 @@ def process_body(records, sample_ids):
             indptr.append(index)
 
     gen = csc_matrix((data[:index], indices[:index], indptr), shape=(len(sample_ids), len(indptr)-1), dtype=np.int8)
-        
-    # Save to file
-    save_npz('%s/chr.%s.%d.gen' % (args.out_directory, args.chrom, args.batch_num), gen)
-    np.save('%s/chr.%s.%d.gen.coordinates' % (args.out_directory, args.chrom, args.batch_num), np.asarray(chrom_coord, dtype=int))
-    print('Completed in ', time.time()-t0, 'sec')
+    return gen, np.asarray(chrom_coord, dtype=int)
+
 
 with open('%s/info.json' % args.out_directory, 'w+') as f:
     json.dump({'assembly': args.assembly, 'batch_size': args.batch_size, 'vcf_directory': '/'.join(args.vcf_file.split('/')[:-1])}, f)
 
 vcf = VariantFile(args.vcf_file)
 sample_ids, contigs = process_header(vcf)
+
+if len(args.additional_vcf_files)>0:
+    for vcf_file in args.additional_vcf_files:
+        if os.path.isfile(vcf_file):
+            new_vcf = VariantFile(vcf_file)
+            new_sample_ids, _ = process_header(new_vcf)
+            assert sample_ids == new_sample_ids
+        else:
+            print(vcf_file, 'does not exist')
 
 contig = None
 if args.chrom in contigs:
@@ -85,14 +93,30 @@ else:
     raise Exception('Trouble finding contig', args.chrom, 'in', contig_names)
 print('Chrom length', contig.length)
 
-vcf = TabixFile(args.vcf_file, parser=None)
-if args.batch_size is not None:
-    start_pos, end_pos = args.batch_num*args.batch_size, (args.batch_num+1)*args.batch_size
-    print('Interval', start_pos, end_pos)
-    if start_pos < contig.length:
-        process_body(vcf.fetch(reference=contig.name, start=start_pos, end=end_pos), sample_ids)
+vcfs = [TabixFile(args.vcf_file, parser=None)]
+for vcf_file in args.additional_vcf_files:
+    vcfs.append(TabixFile(args.vcf_file, parser=None))
+
+all_gens, all_positions = [], []
+for vcf in vcfs:
+    if args.batch_size is not None:
+        start_pos, end_pos = args.batch_num*args.batch_size, (args.batch_num+1)*args.batch_size
+        print('Interval', start_pos, end_pos)
+        if start_pos < contig.length:
+            gen, positions = process_body(vcf.fetch(reference=contig.name, start=start_pos, end=end_pos), sample_ids)
+        else:
+            print('Interval (%d-%d) is longer than chromosome (length=%d).' % (start_pos, end_pos, contig.length))
     else:
-        print('Interval (%d-%d) is longer than chromosome (length=%d).' % (start_pos, end_pos, contig.length))
-else:
-    process_body(vcf.fetch(reference=contig.name), sample_ids)
+        gen, positions = process_body(vcf.fetch(reference=contig.name), sample_ids)
+    all_gens.append(gen)
+    all_positions.append(positions)
+
+# Save to file
+all_gens = hstack(all_gens)
+all_positions = np.vstack(all_positions)
+
+save_npz('%s/chr.%s.%d.gen' % (args.out_directory, args.chrom, args.batch_num), all_gens)
+np.save('%s/chr.%s.%d.gen.coordinates' % (args.out_directory, args.chrom, args.batch_num), np.asarray(all_positions, dtype=int))
+print('Completed in ', time.time()-t0, 'sec')
+
 
