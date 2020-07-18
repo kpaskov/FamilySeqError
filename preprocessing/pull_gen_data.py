@@ -16,6 +16,10 @@ parser.add_argument('--batch_size', type=int, default=None, help='Restrict numbe
 parser.add_argument('--batch_num', type=int, default=0, help='To be used along with batch_size to restrict positions per file. Will include positions >= batch_num*batch_size and <= (batch_num+1)*batch_size')
 parser.add_argument('--maxsize', type=int, default=500000000, help='Amount of memory per block.')
 parser.add_argument('--additional_vcf_files', type=str, nargs='+', help='Additional VCF files to pull data from.')
+parser.add_argument('--id_mapper_file', type=str, default=None, help='File that maps old ids to new ones.')
+parser.add_argument('--id_mapper_sep', type=str, default='\t', help='Separater to parse id_mapper_file.')
+parser.add_argument('--old_id_index', type=int, default=0, help='Index of old_id in id_mapper_file.')
+parser.add_argument('--new_id_index', type=int, default=1, help='Index of new_id in id_mapper_file.')
 args = parser.parse_args()
 
 t0 = time.time()
@@ -27,11 +31,22 @@ gen_mapping = {'./.': -1, '0/0': 0, '0|0': 0, '0/1': 1, '0|1': 1, '1/0': 1, '1|0
 def process_header(vcf):
     sample_ids = [x.replace('.', '_') for x in vcf.header.samples]
 
-    if args.batch_num == 0:
-        with open('%s/chr.%s.gen.samples.txt' % (args.out_directory, args.chrom), 'w+') as sample_f:
-            # Pull sample_ids and write to file
-            sample_f.write('\n'.join(sample_ids))
-            print('Num individuals with genomic data', len(sample_ids))
+    if args.id_mapper_file is not None:
+        old_id_to_new_id = dict()
+        with open(args.id_mapper_file, 'r') as f:
+            for line in f:
+                pieces = line.strip().split(args.id_mapper_sep)
+                old_id_to_new_id[pieces[args.old_id_index]] = pieces[args.new_id_index]
+        sample_ids = [old_id_to_new_id[x] for x in sample_ids]
+
+    if args.batch_num == 0 and args.chrom=='1':
+        with open('%s/samples.txt' % args.out_directory, 'w+') as f:
+            sample_ids = json.dump(sample_ids, f)
+    else:
+        with open('%s/samples.txt' % args.out_directory, 'r') as f:
+            stored_sample_ids = json.load(f)
+        assert sample_ids == stored_sample_ids
+        
     return sample_ids, vcf.header.contigs
 
 def process_body(records, sample_ids):
