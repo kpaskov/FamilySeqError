@@ -6,6 +6,7 @@ import gzip
 from pysam import VariantFile, TabixFile
 import json
 import os
+import itertools
 
 parser = argparse.ArgumentParser(description='Pull genotypes.')
 parser.add_argument('vcf_file', type=str, help='VCF file to pull from.')
@@ -82,8 +83,11 @@ def process_body(records, sample_ids):
             indptr.append(index)
 
     gen = csc_matrix((data[:index], indices[:index], indptr), shape=(len(sample_ids), len(indptr)-1), dtype=np.int8)
-    return gen, np.asarray(chrom_coord, dtype=int)
 
+    # Save to file
+    save_npz('%s/chr.%s.%d.gen' % (args.out_directory, args.chrom, args.batch_num), gen)
+    np.save('%s/chr.%s.%d.gen.coordinates' % (args.out_directory, args.chrom, args.batch_num), np.asarray(np.asarray(chrom_coord, dtype=int), dtype=int))
+    print('Completed in ', time.time()-t0, 'sec')
 
 with open('%s/info.json' % args.out_directory, 'w+') as f:
     json.dump({'assembly': args.assembly, 'batch_size': args.batch_size, 'vcf_directory': '/'.join(args.vcf_file.split('/')[:-1])}, f)
@@ -113,26 +117,16 @@ vcfs = [TabixFile(args.vcf_file, parser=None)]
 for vcf_file in args.additional_vcf_files:
     vcfs.append(TabixFile(args.vcf_file, parser=None))
 
-all_gens, all_positions = [], []
-for vcf in vcfs:
-    if args.batch_size is not None:
-        start_pos, end_pos = args.batch_num*args.batch_size, (args.batch_num+1)*args.batch_size
-        print('Interval', start_pos, end_pos)
-        if start_pos < contig.length:
-            gen, positions = process_body(vcf.fetch(reference=contig.name, start=start_pos, end=end_pos), sample_ids)
-        else:
-            print('Interval (%d-%d) is longer than chromosome (length=%d).' % (start_pos, end_pos, contig.length))
+if args.batch_size is not None:
+    start_pos, end_pos = args.batch_num*args.batch_size, (args.batch_num+1)*args.batch_size
+    print('Interval', start_pos, end_pos)
+    if start_pos < contig.length:
+        process_body(itertools.chain([vcf.fetch(reference=contig.name, start=start_pos, end=end_pos) for vcf in vcfs]), sample_ids)
     else:
-        gen, positions = process_body(vcf.fetch(reference=contig.name), sample_ids)
-    all_gens.append(gen)
-    all_positions.append(positions)
+        print('Interval (%d-%d) is longer than chromosome (length=%d).' % (start_pos, end_pos, contig.length))
+else:
+    process_body(itertools.chain([vcf.fetch(reference=contig.name) for vcf in vcf]), sample_ids)
 
-# Save to file
-all_gens = hstack(all_gens)
-all_positions = np.vstack(all_positions)
 
-save_npz('%s/chr.%s.%d.gen' % (args.out_directory, args.chrom, args.batch_num), all_gens)
-np.save('%s/chr.%s.%d.gen.coordinates' % (args.out_directory, args.chrom, args.batch_num), np.asarray(all_positions, dtype=int))
-print('Completed in ', time.time()-t0, 'sec')
 
 
