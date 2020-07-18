@@ -36,7 +36,8 @@ def process_header(vcf):
         with open(args.id_mapper_file, 'r') as f:
             for line in f:
                 pieces = line.strip().split(args.id_mapper_sep)
-                old_id_to_new_id[pieces[args.old_id_index]] = pieces[args.new_id_index]
+                if len(pieces)>args.old_id_index and len(pieces)>args.new_id_index:
+                    old_id_to_new_id[pieces[args.old_id_index]] = pieces[args.new_id_index]
         sample_ids = [old_id_to_new_id[x] for x in sample_ids]
 
     if args.batch_num == 0 and args.chrom=='1':
@@ -46,7 +47,7 @@ def process_header(vcf):
         with open('%s/samples.txt' % args.out_directory, 'r') as f:
             stored_sample_ids = json.load(f)
         assert sample_ids == stored_sample_ids
-        
+
     return sample_ids, vcf.header.contigs
 
 def process_body(records, sample_ids):
