@@ -133,6 +133,8 @@ for gen_file in gen_files:
 
                 # recode missing values
                 family_genotypes[family_genotypes<0] = 3
+
+                print(A.shape, family_genotypes.shape)
                     
                 # fill in genotype_to_counts
                 unique_gens, counts = np.unique(family_genotypes, return_counts=True, axis=1)
