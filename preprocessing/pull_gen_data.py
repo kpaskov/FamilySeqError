@@ -13,7 +13,7 @@ parser.add_argument('vcf_file', type=str, help='VCF file to pull from.')
 parser.add_argument('assembly', type=str, help='Human genome reference used.')
 parser.add_argument('out_directory', type=str, help='Output directory.')
 parser.add_argument('chrom', type=str, help='Chromosome of interest.')
-parser.add_argument('--batch_size', type=int, default=None, help='Restrict number of positions per file to batch_size.')
+parser.add_argument('--batch_size', type=int, default=-1, help='Restrict number of positions per file to batch_size.')
 parser.add_argument('--batch_num', type=int, default=0, help='To be used along with batch_size to restrict positions per file. Will include positions >= batch_num*batch_size and <= (batch_num+1)*batch_size')
 parser.add_argument('--maxsize', type=int, default=500000000, help='Amount of memory per block.')
 parser.add_argument('--additional_vcf_files', type=str, nargs='+', help='Additional VCF files to pull data from.')
@@ -117,7 +117,7 @@ vcfs = [TabixFile(args.vcf_file, parser=None)]
 for vcf_file in args.additional_vcf_files:
     vcfs.append(TabixFile(args.vcf_file, parser=None))
 
-if args.batch_size is not None:
+if args.batch_size != -1:
     start_pos, end_pos = args.batch_num*args.batch_size, (args.batch_num+1)*args.batch_size
     print('Interval', start_pos, end_pos)
     if start_pos < contig.length:

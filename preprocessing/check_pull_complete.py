@@ -23,7 +23,7 @@ missing_files = []
 for chrom in chroms:
 	chrom_length = chrom_lengths[chrom]
 
-	if batch_size is None:
+	if batch_size == -1:
 		num_batches = 1
 	else:
 		num_batches = math.ceil(chrom_length/batch_size)
