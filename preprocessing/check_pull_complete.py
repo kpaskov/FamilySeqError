@@ -27,6 +27,7 @@ for chrom in chroms:
 		num_batches = 1
 	else:
 		num_batches = int(math.ceil(chrom_length/batch_size))
+	print(chrom, batch_size, num_batches)
 		
 
 	for batch_num in range(num_batches):
