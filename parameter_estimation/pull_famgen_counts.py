@@ -24,7 +24,7 @@ if args.chrom == '24':
 if args.chrom == '25':
     args.chrom = 'MT'
 
-sample_file = '%s/samples.txt' % args.data_dir
+sample_file = '%s/samples.json' % args.data_dir
 
 obss = ['0/0', '0/1', '1/1', './.']
 
