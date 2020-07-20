@@ -24,7 +24,7 @@ if args.chrom == '24':
 if args.chrom == '25':
     args.chrom = 'MT'
 
-sample_file = '%s/chr.%s.gen.samples.txt' % (args.data_dir, args.chrom)
+sample_file = '%s/samples.txt' % args.data_dir
 
 obss = ['0/0', '0/1', '1/1', './.']
 
@@ -59,9 +59,7 @@ print('excluding %s bp' % ('no' if exclude_regions is None else str(exclude_cove
 
 # pull families with sequence data
 with open(sample_file, 'r') as f:
-    sample_id_to_index = dict([(line.strip(), i) for i, line in enumerate(f)])
-with open(sample_file, 'r') as f:
-    sample_ids = [line.strip() for line in f]
+    sample_id_to_index = dict([(sample_id, i) for i, sample_id in enumerate(json.load(f))])
 
 # pull families from ped file
 families = dict()

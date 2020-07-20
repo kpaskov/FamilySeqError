@@ -263,7 +263,7 @@ for i, famkey in enumerate(famkeys):
             add_expected_counts(ind_params)
             add_precision_recall(ind_params)
 
-            params['.'.join(famkey) + '.' + inds[j]] = ind_params
+            params[famkey[0] + '.' + inds[j]] = ind_params
 
     except Exception as err:
         num_error_families += 1
