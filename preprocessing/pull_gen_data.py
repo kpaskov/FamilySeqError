@@ -115,7 +115,10 @@ print('Chrom length', contig.length)
 
 vcfs = [TabixFile(args.vcf_file, parser=None)]
 for vcf_file in args.additional_vcf_files:
-    vcfs.append(TabixFile(args.vcf_file, parser=None))
+    if os.path.isfile(vcf_file):
+        vcfs.append(TabixFile(vcf_file, parser=None))
+    else:
+        print(vcf_file, 'does not exist')
 
 if args.batch_size != -1:
     start_pos, end_pos = args.batch_num*args.batch_size, (args.batch_num+1)*args.batch_size
