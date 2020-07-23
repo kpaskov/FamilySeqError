@@ -41,13 +41,14 @@ def process_header(vcf):
                     old_id_to_new_id[pieces[args.old_id_index]] = pieces[args.new_id_index]
         sample_ids = [old_id_to_new_id[x] for x in sample_ids]
 
-    if args.batch_num == 0 and args.chrom=='1':
-        with open('%s/samples.json' % args.out_directory, 'w+') as f:
-            sample_ids = json.dump(sample_ids, f)
-    else:
-        with open('%s/samples.json' % args.out_directory, 'r') as f:
+    sample_file = '%s/samples.json' % args.out_directory
+    if os.path.isfile(sample_file):
+        with open(sample_file, 'r') as f:
             stored_sample_ids = json.load(f)
-        assert sample_ids == stored_sample_ids
+            assert sample_ids == stored_sample_ids
+    else:
+        with open(sample_file, 'w+') as f:
+            json.dump(sample_ids, f)
 
     return sample_ids, vcf.header.contigs
 
