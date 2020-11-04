@@ -10,7 +10,7 @@ from os import listdir
 import argparse
 
 parser = argparse.ArgumentParser(description='Estimate parameters.')
-parser.add_argument('data_dir', type=str, help='Directory of genotype data in .npy format.')
+parser.add_argument('data_dir', type=str, help='Family genotype count directory.')
 parser.add_argument('out_file', type=str, help='Output file.')
 parser.add_argument('--is_ngs', action='store_true', default=False, help='True if this data is NGS. The important point is whether or not sites where all individuals are homozygous reference are sometimes dropped from the VCF. If this happens, use flag --is_ngs')
 args = parser.parse_args()
@@ -156,12 +156,12 @@ def estimate_error_rates(is_mendelian, allowable_errors, counts):
     # cvxpy
     n = cp.Variable(X.shape[1])
     mu = np.sum(X, axis=0)
-    objective = cp.Minimize(alpha*mu*n - alpha*y*cp.log(X*n))
+    objective = cp.Minimize(alpha*mu@n - alpha*y@cp.log(X@n))
 
     # Wilson score interval so that if we don't observe any errors, then we take the 95% confidence interval
     z = 1.96
     lower_bound = ((z*z)/2)/(mu+(z*z))
-    prob = cp.Problem(objective, [n >= lower_bound, n<=1])
+    prob = cp.Problem(objective, [n >= 0, n<=1])
     
     result = prob.solve(solver='ECOS', max_iters=10000)
     print(prob.status)
