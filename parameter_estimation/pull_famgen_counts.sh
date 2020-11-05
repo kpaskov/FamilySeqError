@@ -4,11 +4,11 @@
 #SBATCH --job-name=famgen
 #SBATCH --output=logs/famgen_%a.out
 #SBATCH --error=logs/famgen_%a.err
-#SBATCH --array=1-22%7
+#SBATCH --array=1-22
 #SBATCH -p dpwall
 #SBATCH -D /oak/stanford/groups/dpwall/users/kpaskov/FamilySeqError
-#SBATCH -t 30:00:00
-#SBATCH --mem=8G
+#SBATCH -t 5:00:00
+#SBATCH --mem=16G
 
 module load py-numpy/1.14.3_py36
 module load py-scipy/1.1.0_py36
@@ -19,19 +19,14 @@ echo "My SLURM_ARRAY_TASK_ID is " $SLURM_ARRAY_TASK_ID
 # ------------------------ For parameter estimation paper -----------------------
 
 # ihart
-#srun python3 parameter_estimation/pull_famgen_counts.py split_gen_ihart data/v34.vcf.ped $SLURM_ARRAY_TASK_ID split_gen_ihart
+#srun python3 parameter_estimation/pull_famgen_counts.py ../DATA/ihart.ms2/genotypes ../DATA/ihart.ms2/ihart.ped $SLURM_ARRAY_TASK_ID ../DATA/ihart.ms2/family_genotype_counts
 
-# ihart HCR
-#srun python3 parameter_estimation/pull_famgen_counts.py split_gen_ihart data/v34.vcf.ped $SLURM_ARRAY_TASK_ID split_gen_ihart_HCR --exclude data/btu356-suppl_data/btu356_LCR-hs37d5.bed/btu356_LCR-hs37d5.bed
+#srun python3 parameter_estimation/pull_famgen_counts.py ../DATA/ihart.ms2/genotypes ../DATA/ihart.ms2/ihart.ped $SLURM_ARRAY_TASK_ID ../DATA/ihart.ms2/family_genotype_counts/HCR --exclude data/btu356-suppl_data/btu356_LCR-hs38.bed/btu356_LCR-hs38.bed
 
-# ihart LCR
-# srun python3 parameter_estimation/pull_famgen_counts.py split_gen_ihart data/v34.vcf.ped $SLURM_ARRAY_TASK_ID split_gen_ihart_LCR --include data/btu356-suppl_data/btu356_LCR-hs37d5.bed/btu356_LCR-hs37d5.bed
+#srun python3 parameter_estimation/pull_famgen_counts.py ../DATA/ihart.ms2/genotypes ../DATA/ihart.ms2/ihart.ped $SLURM_ARRAY_TASK_ID ../DATA/ihart.ms2/family_genotype_counts/LCR --include data/btu356-suppl_data/btu356_LCR-hs38.bed/btu356_LCR-hs38.bed
 
 # ihart (GATK 3.2)
 # srun python3 parameter_estimation/pull_famgen_counts.py split_gen_ihart3.2 data/v34.vcf.ped $SLURM_ARRAY_TASK_ID split_gen_ihart3.2
-
-# ihart EX
-# srun python3 parameter_estimation/pull_famgen_counts.py split_gen_ihart3.2 data/v34.vcf.ped $SLURM_ARRAY_TASK_ID split_gen_ihart_EX --include data/VCRome_2_1_hg19_primary_targets.bed
 
 # ihart identicals
 # srun python3 parameter_estimation/pull_famgen_counts.py split_gen_ihart data/ihart_identicals.ped $SLURM_ARRAY_TASK_ID split_gen_ihart_identicals
@@ -66,9 +61,13 @@ echo "My SLURM_ARRAY_TASK_ID is " $SLURM_ARRAY_TASK_ID
 
 #srun python3 parameter_estimation/pull_famgen_counts.py ../DATA/spark/genotypes ../DATA/spark/spark.ped.quads.ped $SLURM_ARRAY_TASK_ID ../DATA/spark/family_genotype_counts/quads
 
-#srun python3 parameter_estimation/pull_famgen_counts.py ../DATA/mssng/genotypes ../DATA/mssng/mssng_db6.vcf.ped.quads.ped $SLURM_ARRAY_TASK_ID ../DATA/mssng/family_genotype_counts/quads
+#srun python3 parameter_estimation/pull_famgen_counts.py ../DATA/spark/genotypes ../DATA/spark/spark.ped $SLURM_ARRAY_TASK_ID ../DATA/spark/family_genotype_counts
 
-srun python3 parameter_estimation/pull_famgen_counts.py ../DATA/ancestry/genotypes ../DATA/ancestry/ancestryDNA.ped.quads.ped $SLURM_ARRAY_TASK_ID ../DATA/ancestry/family_genotype_counts/quads
+#srun python3 parameter_estimation/pull_famgen_counts.py ../DATA/mssng/genotypes ../DATA/mssng/mssng_db6.vcf.ped.quads.ped $SLURM_ARRAY_TASK_ID ../DATA/mssng/family_genotype_counts/quads/hcr --exclude ../DATA/lcr_regions/btu356-suppl_data/btu356_LCR-hs38.bed/btu356_LCR-hs38.bed
+
+#srun python3 parameter_estimation/pull_famgen_counts.py ../DATA/mssng/genotypes ../DATA/mssng/mssng_db6.vcf.ped.quads.ped $SLURM_ARRAY_TASK_ID ../DATA/mssng/family_genotype_counts/quads/lcr --include ../DATA/lcr_regions/btu356-suppl_data/btu356_LCR-hs38.bed/btu356_LCR-hs38.bed
+
+#srun python3 parameter_estimation/pull_famgen_counts.py ../DATA/ancestry/genotypes ../DATA/ancestry/ancestryDNA.ped.quads.ped $SLURM_ARRAY_TASK_ID ../DATA/ancestry/family_genotype_counts/quads
 
 # ------------------------ For deletions paper -----------------------    
 
@@ -77,3 +76,76 @@ srun python3 parameter_estimation/pull_famgen_counts.py ../DATA/ancestry/genotyp
 
 # SSC
 #srun python3 parameter_estimation/pull_famgen_counts.py split_gen_ssc data/ssc.ped $SLURM_ARRAY_TASK_ID split_gen_ssc
+
+# ------------------------ For crossover paper ------------------------
+
+# ihart
+#srun python3 parameter_estimation/pull_famgen_counts.py ../DATA/ihart/genotypes ../DATA/ihart/ihart.ped.quads.ped $SLURM_ARRAY_TASK_ID ../DATA/ihart/family_genotype_counts/quads/LCR --include data/btu356-suppl_data/btu356_LCR-hs37d5.bed/btu356_LCR-hs37d5.bed 
+
+#srun python3 parameter_estimation/pull_famgen_counts.py ../DATA/ihart/genotypes ../DATA/ihart/ihart.ped.quads.ped $SLURM_ARRAY_TASK_ID ../DATA/ihart/family_genotype_counts/quads/HCR --exclude data/btu356-suppl_data/btu356_LCR-hs37d5.bed/btu356_LCR-hs37d5.bed    
+
+# mssng
+#srun python3 parameter_estimation/pull_famgen_counts.py ../DATA/mssng/genotypes ../DATA/mssng/mssng.ped.quads.ped $SLURM_ARRAY_TASK_ID ../DATA/mssng/family_genotype_counts/LCR_quads --include data/btu356-suppl_data/btu356_LCR-hs38.bed/btu356_LCR-hs38.bed
+
+#srun python3 parameter_estimation/pull_famgen_counts.py ../DATA/mssng/genotypes ../DATA/mssng/mssng.ped.quads.ped $SLURM_ARRAY_TASK_ID ../DATA/mssng/family_genotype_counts/HCR_quads --exclude data/btu356-suppl_data/btu356_LCR-hs38.bed/btu356_LCR-hs38.bed
+
+# ssc
+#srun python3 parameter_estimation/pull_famgen_counts.py ../DATA/ssc.hg38/genotypes/phase1-1 ../DATA/ssc.hg38/ssc.ped $SLURM_ARRAY_TASK_ID ../DATA/ssc.hg38/family_genotype_counts/phase1-1_LCR --include data/btu356-suppl_data/btu356_LCR-hs38.bed/btu356_LCR-hs38.bed
+
+#srun python3 parameter_estimation/pull_famgen_counts.py ../DATA/ssc.hg38/genotypes/phase1-1 ../DATA/ssc.hg38/ssc.ped $SLURM_ARRAY_TASK_ID ../DATA/ssc.hg38/family_genotype_counts/phase1-1_HCR --exclude data/btu356-suppl_data/btu356_LCR-hs38.bed/btu356_LCR-hs38.bed
+
+#srun python3 parameter_estimation/pull_famgen_counts.py ../DATA/ssc.hg38/genotypes/phase1-2 ../DATA/ssc.hg38/ssc.ped $SLURM_ARRAY_TASK_ID ../DATA/ssc.hg38/family_genotype_counts/phase1-2_LCR --include data/btu356-suppl_data/btu356_LCR-hs38.bed/btu356_LCR-hs38.bed                 
+
+#srun python3 parameter_estimation/pull_famgen_counts.py ../DATA/ssc.hg38/genotypes/phase1-2 ../DATA/ssc.hg38/ssc.ped $SLURM_ARRAY_TASK_ID ../DATA/ssc.hg38/family_genotype_counts/phase1-2_HCR --exclude data/btu356-suppl_data/btu356_LCR-hs38.bed/btu356_LCR-hs38.bed
+
+#srun python3 parameter_estimation/pull_famgen_counts.py ../DATA/ssc.hg38/genotypes/phase1-3 ../DATA/ssc.hg38/ssc.ped $SLURM_ARRAY_TASK_ID ../DATA/ssc.hg38/family_genotype_counts/phase1-3_LCR --include data/btu356-suppl_data/btu356_LCR-hs38.bed/btu356_LCR-hs38.bed
+
+#srun python3 parameter_estimation/pull_famgen_counts.py ../DATA/ssc.hg38/genotypes/phase1-3 ../DATA/ssc.hg38/ssc.ped $SLURM_ARRAY_TASK_ID ../DATA/ssc.hg38/family_genotype_counts/phase1-3_HCR --exclude data/btu356-suppl_data/btu356_LCR-hs38.bed/btu356_LCR-hs38.bed
+
+#srun python3 parameter_estimation/pull_famgen_counts.py ../DATA/ssc.hg38/genotypes/phase1-4 ../DATA/ssc.hg38/ssc.ped $SLURM_ARRAY_TASK_ID ../DATA/ssc.hg38/family_genotype_counts/phase1-4_LCR --include data/btu356-suppl_data/btu356_LCR-hs38.bed/btu356_LCR-hs38.bed
+
+#srun python3 parameter_estimation/pull_famgen_counts.py ../DATA/ssc.hg38/genotypes/phase1-4 ../DATA/ssc.hg38/ssc.ped $SLURM_ARRAY_TASK_ID ../DATA/ssc.hg38/family_genotype_counts/phase1-4_HCR --exclude data/btu356-suppl_data/btu356_LCR-hs38.bed/btu356_LCR-hs38.bed
+
+#srun python3 parameter_estimation/pull_famgen_counts.py ../DATA/ssc.hg38/genotypes/phase1-5 ../DATA/ssc.hg38/ssc.ped $SLURM_ARRAY_TASK_ID ../DATA/ssc.hg38/family_genotype_counts/phase1-5_LCR --include data/btu356-suppl_data/btu356_LCR-hs38.bed/btu356_LCR-hs38.bed
+
+#srun python3 parameter_estimation/pull_famgen_counts.py ../DATA/ssc.hg38/genotypes/phase1-5 ../DATA/ssc.hg38/ssc.ped $SLURM_ARRAY_TASK_ID ../DATA/ssc.hg38/family_genotype_counts/phase1-5_HCR --exclude data/btu356-suppl_data/btu356_LCR-hs38.bed/btu356_LCR-hs38.bed
+
+#srun python3 parameter_estimation/pull_famgen_counts.py ../DATA/ssc.hg38/genotypes/phase1-7 ../DATA/ssc.hg38/ssc.ped $SLURM_ARRAY_TASK_ID ../DATA/ssc.hg38/family_genotype_counts/phase1-7_LCR --include data/btu356-suppl_data/btu356_LCR-hs38.bed/btu356_LCR-hs38.bed
+
+#srun python3 parameter_estimation/pull_famgen_counts.py ../DATA/ssc.hg38/genotypes/phase1-7 ../DATA/ssc.hg38/ssc.ped $SLURM_ARRAY_TASK_ID ../DATA/ssc.hg38/family_genotype_counts/phase1-7_HCR --exclude data/btu356-suppl_data/btu356_LCR-hs38.bed/btu356_LCR-hs38.bed
+
+#srun python3 parameter_estimation/pull_famgen_counts.py ../DATA/ssc.hg38/genotypes/phase2 ../DATA/ssc.hg38/ssc.ped $SLURM_ARRAY_TASK_ID ../DATA/ssc.hg38/family_genotype_counts/phase2_LCR --include data/btu356-suppl_data/btu356_LCR-hs38.bed/btu356_LCR-hs38.bed
+
+#srun python3 parameter_estimation/pull_famgen_counts.py ../DATA/ssc.hg38/genotypes/phase2 ../DATA/ssc.hg38/ssc.ped $SLURM_ARRAY_TASK_ID ../DATA/ssc.hg38/family_genotype_counts/phase2_HCR --exclude data/btu356-suppl_data/btu356_LCR-hs38.bed/btu356_LCR-hs38.bed
+
+#srun python3 parameter_estimation/pull_famgen_counts.py ../DATA/ssc.hg38/genotypes/phase2_B01 ../DATA/ssc.hg38/ssc.ped $SLURM_ARRAY_TASK_ID ../DATA/ssc.hg38/family_genotype_counts/phase2_B01_LCR --include data/btu356-suppl_data/btu356_LCR-hs38.bed/btu356_LCR-hs38.bed
+
+#srun python3 parameter_estimation/pull_famgen_counts.py ../DATA/ssc.hg38/genotypes/phase2_B01 ../DATA/ssc.hg38/ssc.ped $SLURM_ARRAY_TASK_ID ../DATA/ssc.hg38/family_genotype_counts/phase2_B01_HCR --exclude data/btu356-suppl_data/btu356_LCR-hs38.bed/btu356_LCR-hs38.bed
+
+#srun python3 parameter_estimation/pull_famgen_counts.py ../DATA/ssc.hg38/genotypes/phase2_Replacements ../DATA/ssc.hg38/ssc.ped $SLURM_ARRAY_TASK_ID ../DATA/ssc.hg38/family_genotype_counts/phase2_Replacements_LCR --include data/btu356-suppl_data/btu356_LCR-hs38.bed/btu356_LCR-hs38.bed
+
+#srun python3 parameter_estimation/pull_famgen_counts.py ../DATA/ssc.hg38/genotypes/phase2_Replacements ../DATA/ssc.hg38/ssc.ped $SLURM_ARRAY_TASK_ID ../DATA/ssc.hg38/family_genotype_counts/phase2_Replacements_HCR --exclude data/btu356-suppl_data/btu356_LCR-hs38.bed/btu356_LCR-hs38.bed
+
+#srun python3 parameter_estimation/pull_famgen_counts.py ../DATA/ssc.hg38/genotypes/phase3_1 ../DATA/ssc.hg38/ssc.ped $SLURM_ARRAY_TASK_ID ../DATA/ssc.hg38/family_genotype_counts/phase3_1_LCR --include data/btu356-suppl_data/btu356_LCR-hs38.bed/btu356_LCR-hs38.bed
+
+#srun python3 parameter_estimation/pull_famgen_counts.py ../DATA/ssc.hg38/genotypes/phase3_1 ../DATA/ssc.hg38/ssc.ped $SLURM_ARRAY_TASK_ID ../DATA/ssc.hg38/family_genotype_counts/phase3_1_HCR --exclude data/btu356-suppl_data/btu356_LCR-hs38.bed/btu356_LCR-hs38.bed
+
+#srun python3 parameter_estimation/pull_famgen_counts.py ../DATA/ssc.hg38/genotypes/phase3_1_B02 ../DATA/ssc.hg38/ssc.ped $SLURM_ARRAY_TASK_ID ../DATA/ssc.hg38/family_genotype_counts/phase3_1_B02_LCR --include data/btu356-suppl_data/btu356_LCR-hs38.bed/btu356_LCR-hs38.bed
+
+#srun python3 parameter_estimation/pull_famgen_counts.py ../DATA/ssc.hg38/genotypes/phase3_1_B02 ../DATA/ssc.hg38/ssc.ped $SLURM_ARRAY_TASK_ID ../DATA/ssc.hg38/family_genotype_counts/phase3_1_B02_HCR --exclude data/btu356-suppl_data/btu356_LCR-hs38.bed/btu356_LCR-hs38.bed
+
+#srun python3 parameter_estimation/pull_famgen_counts.py ../DATA/ssc.hg38/genotypes/phase3_2 ../DATA/ssc.hg38/ssc.ped $SLURM_ARRAY_TASK_ID ../DATA/ssc.hg38/family_genotype_counts/phase3_2_LCR --include data/btu356-suppl_data/btu356_LCR-hs38.bed/btu356_LCR-hs38.bed
+
+#srun python3 parameter_estimation/pull_famgen_counts.py ../DATA/ssc.hg38/genotypes/phase3_2 ../DATA/ssc.hg38/ssc.ped $SLURM_ARRAY_TASK_ID ../DATA/ssc.hg38/family_genotype_counts/phase3_2_HCR --exclude data/btu356-suppl_data/btu356_LCR-hs38.bed/btu356_LCR-hs38.bed
+
+#srun python3 parameter_estimation/pull_famgen_counts.py ../DATA/ssc.hg38/genotypes/phase4 ../DATA/ssc.hg38/ssc.ped $SLURM_ARRAY_TASK_ID ../DATA/ssc.hg38/family_genotype_counts/phase4_LCR --include data/btu356-suppl_data/btu356_LCR-hs38.bed/btu356_LCR-hs38.bed
+
+#srun python3 parameter_estimation/pull_famgen_counts.py ../DATA/ssc.hg38/genotypes/phase4 ../DATA/ssc.hg38/ssc.ped $SLURM_ARRAY_TASK_ID ../DATA/ssc.hg38/family_genotype_counts/phase4_HCR --exclude data/btu356-suppl_data/btu356_LCR-hs38.bed/btu356_LCR-hs38.bed
+
+#srun python3 parameter_estimation/pull_famgen_counts.py ../DATA/ssc.hg38/genotypes/pilot ../DATA/ssc.hg38/ssc.ped $SLURM_ARRAY_TASK_ID ../DATA/ssc.hg38/family_genotype_counts/pilot_LCR --include data/btu356-suppl_data/btu356_LCR-hs38.bed/btu356_LCR-hs38.bed
+
+#srun python3 parameter_estimation/pull_famgen_counts.py ../DATA/ssc.hg38/genotypes/pilot ../DATA/ssc.hg38/ssc.ped $SLURM_ARRAY_TASK_ID ../DATA/ssc.hg38/family_genotype_counts/pilot_HCR --exclude data/btu356-suppl_data/btu356_LCR-hs38.bed/btu356_LCR-hs38.bed
+
+#srun python3 parameter_estimation/pull_famgen_counts.py ../DATA/ihart.ms2/genotypes ../DATA/ihart.ms2/ihart.ped.quads.ped $SLURM_ARRAY_TASK_ID ../DATA/ihart.ms2/family_genotype_counts/HCR_quads --exclude data/btu356-suppl_data/btu356_LCR-hs38.bed/btu356_LCR-hs38.bed 
+
+#srun python3 parameter_estimation/pull_famgen_counts.py ../DATA/ihart.ms2/genotypes ../DATA/ihart.ms2/ihart.ped.quads.ped $SLURM_ARRAY_TASK_ID ../DATA/ihart.ms2/family_genotype_counts/LCR_quads --include data/btu356-suppl_data/btu356_LCR-hs38.bed/btu356_LCR-hs38.bed
