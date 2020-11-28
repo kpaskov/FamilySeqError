@@ -96,7 +96,7 @@ with open('%s/info.json' % args.out_directory, 'w+') as f:
 vcf = VariantFile(args.vcf_file)
 sample_ids, contigs = process_header(vcf)
 
-if len(args.additional_vcf_files)>0:
+if args.additional_vcf_files is not None:
     for vcf_file in args.additional_vcf_files:
         if os.path.isfile(vcf_file):
             new_vcf = VariantFile(vcf_file)
@@ -115,11 +115,12 @@ else:
 print('Chrom length', contig.length)
 
 vcfs = [TabixFile(args.vcf_file, parser=None)]
-for vcf_file in args.additional_vcf_files:
-    if os.path.isfile(vcf_file):
-        vcfs.append(TabixFile(vcf_file, parser=None))
-    else:
-        print(vcf_file, 'does not exist')
+if args.additional_vcf_files is not None:
+    for vcf_file in args.additional_vcf_files:
+        if os.path.isfile(vcf_file):
+            vcfs.append(TabixFile(vcf_file, parser=None))
+        else:
+            print(vcf_file, 'does not exist')
 
 if args.batch_size != -1:
     start_pos, end_pos = args.batch_num*args.batch_size, (args.batch_num+1)*args.batch_size

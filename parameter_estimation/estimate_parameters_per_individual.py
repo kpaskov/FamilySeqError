@@ -189,7 +189,7 @@ def estimate_error_rates(is_mendelian, allowable_errors, counts):
     for i, gen in enumerate(gens):
         error_rates[:, i, i] = 1-np.sum(error_rates[:, i, [k for k in range(len(obss)) if k != i]], axis=1)
     
-    return error_rates, lower_bounds        
+    return error_rates, lower_bounds, np.sum(y)
 
 
 
@@ -251,13 +251,16 @@ for i, famkey in enumerate(famkeys):
         allowable_errors = [allowable_errors_parent]*2 + [allowable_errors_child]*(m-2)
         counts = family_to_counts[famkey]
 
-        error_rates, lower_bounds = estimate_error_rates(is_mendelian, allowable_errors, counts)
+        error_rates, lower_bounds, nm_count = estimate_error_rates(is_mendelian, allowable_errors, counts)
 
         #print(-np.log10(error_rates))
 
         for j in range(len(inds)):
             # observed counts
-            ind_params = {}
+            ind_params = {'nonmendelian_count': int(nm_count), 
+                            'family_size': int(m), 
+                            'missing_count': int(np.sum(counts.take(indices=3, axis=j))),
+                            'total_count': int(np.sum(counts))}
             add_observed_counts(ind_params, counts, j, m)
             add_estimated_error_rates(ind_params, error_rates, lower_bounds, j)
             add_expected_counts(ind_params)
