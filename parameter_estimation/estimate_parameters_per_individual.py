@@ -189,7 +189,7 @@ def estimate_error_rates(is_mendelian, allowable_errors, counts):
     for i, gen in enumerate(gens):
         error_rates[:, i, i] = 1-np.sum(error_rates[:, i, [k for k in range(len(obss)) if k != i]], axis=1)
     
-    return error_rates, lower_bounds, np.sum(y)
+    return error_rates, lower_bounds, np.sum([counts[nmfg] for nmfg in nonmendelian_famgens if has_variant(nmfg)])
 
 
 
