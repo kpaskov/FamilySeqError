@@ -8,6 +8,7 @@ import json
 import os
 import itertools
 
+
 parser = argparse.ArgumentParser(description='Pull genotypes.')
 parser.add_argument('vcf_file', type=str, help='VCF file to pull from.')
 parser.add_argument('assembly', type=str, help='Human genome reference used.')
@@ -114,13 +115,12 @@ else:
     raise Exception('Trouble finding contig', args.chrom, 'in', contig_names)
 print('Chrom length', contig.length)
 
-vcfs = [TabixFile(args.vcf_file, parser=None)]
+
+vcf_files = [args.vcf_file]
 if args.additional_vcf_files is not None:
-    for vcf_file in args.additional_vcf_files:
-        if os.path.isfile(vcf_file):
-            vcfs.append(TabixFile(vcf_file, parser=None))
-        else:
-            print(vcf_file, 'does not exist')
+    vcf_files.extend(args.additional_vcf_files)
+
+vcfs = [VariantFile(vcf_file, parser=None) for vcf in vcf_files]
 
 if args.batch_size != -1:
     start_pos, end_pos = args.batch_num*args.batch_size, (args.batch_num+1)*args.batch_size
