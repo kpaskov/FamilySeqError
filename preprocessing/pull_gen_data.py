@@ -120,19 +120,20 @@ vcf_files = [args.vcf_file]
 if args.additional_vcf_files is not None:
     vcf_files.extend(args.additional_vcf_files)
 
-if np.all([os.path.isfile(vcf_file + '.tbi') for vcf_file in vcf_files])
-vcfs = [TabixFile(vcf_file, parser=None) for vcf_file in vcf_files]
+if np.all([os.path.isfile(vcf_file + '.tbi') for vcf_file in vcf_files]):
+    vcfs = [TabixFile(vcf_file, parser=None) for vcf_file in vcf_files]
 
-if args.batch_size != -1:
-    start_pos, end_pos = args.batch_num*args.batch_size, (args.batch_num+1)*args.batch_size
-    print('Interval', start_pos, end_pos)
-    if start_pos < contig.length:
-        process_body(itertools.chain(*[vcf.fetch(reference=contig.name, start=start_pos, end=end_pos) for vcf in vcfs]), sample_ids)
+    if args.batch_size != -1:
+        start_pos, end_pos = args.batch_num*args.batch_size, (args.batch_num+1)*args.batch_size
+        print('Interval', start_pos, end_pos)
+        if start_pos < contig.length:
+            process_body(itertools.chain(*[vcf.fetch(reference=contig.name, start=start_pos, end=end_pos) for vcf in vcfs]), sample_ids)
+        else:
+            print('Interval (%d-%d) is longer than chromosome (length=%d).' % (start_pos, end_pos, contig.length))
     else:
-        print('Interval (%d-%d) is longer than chromosome (length=%d).' % (start_pos, end_pos, contig.length))
+        process_body(itertools.chain(*[vcf.fetch(reference=contig.name) for vcf in vcf]), sample_ids)
 else:
-    process_body(itertools.chain(*[vcf.fetch(reference=contig.name) for vcf in vcf]), sample_ids)
-
+    print('Error, .tbi files are missing.')
 
 
 
