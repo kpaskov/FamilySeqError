@@ -120,7 +120,8 @@ vcf_files = [args.vcf_file]
 if args.additional_vcf_files is not None:
     vcf_files.extend(args.additional_vcf_files)
 
-vcfs = [VariantFile(vcf_file, parser=None) for vcf_file in vcf_files]
+if np.all([os.path.isfile(vcf_file + '.tbi') for vcf_file in vcf_files])
+vcfs = [TabixFile(vcf_file, parser=None) for vcf_file in vcf_files]
 
 if args.batch_size != -1:
     start_pos, end_pos = args.batch_num*args.batch_size, (args.batch_num+1)*args.batch_size
