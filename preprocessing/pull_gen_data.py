@@ -131,7 +131,7 @@ if np.all([os.path.isfile(vcf_file + '.tbi') for vcf_file in vcf_files]):
         else:
             print('Interval (%d-%d) is longer than chromosome (length=%d).' % (start_pos, end_pos, contig.length))
     else:
-        process_body(itertools.chain(*[vcf.fetch(reference=contig.name) for vcf in vcf]), sample_ids)
+        process_body(itertools.chain(*[vcf.fetch(reference=contig.name) for vcf in vcfs]), sample_ids)
 else:
     print('Error, .tbi files are missing.')
 
