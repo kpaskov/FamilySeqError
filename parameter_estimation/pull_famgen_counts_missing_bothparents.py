@@ -74,7 +74,7 @@ with open(args.ped_file, 'r') as f:
 
             if child_id in sample_id_to_index and f_id not in sample_id_to_index and m_id not in sample_id_to_index:
                 if (fam_id, m_id, f_id) not in families:
-                    families[(fam_id, m_id, f_id)] = [f_id]
+                    families[(fam_id, m_id, f_id)] = []
                 families[(fam_id, m_id, f_id)].append(child_id)
 
 families = dict([(k, v) for k, v in families.items() if len(v)==2])
