@@ -7,8 +7,8 @@ from os import listdir
 
 BaselineCounts = namedtuple('BaselineCounts', ['counts', 'samples', 'families', 'family_sizes', 'is_child', 'is_mom', 'is_dad'])
 Samples = namedtuple('Samples', ['sample_ids', 'families', 'family_sizes', 'is_child', 'is_mom', 'is_dad'])
-PrecisionRecall = namedtuple('PrecisionRecall', ['precision1', 'recall1', 'precision2', 'recall2',
-                    'precision1_upper_bound', 'recall1_upper_bound', 'precision2_upper_bound', 'recall2_upper_bound',
+PrecisionRecall = namedtuple('PrecisionRecall', ['precision1', 'recall1', 'F11', 'precision2', 'recall2', 'F12',
+                    'precision1_upper_bound', 'recall1_upper_bound', 'F11_upper_bound', 'precision2_upper_bound', 'recall2_upper_bound', 'F12_upper_bound',
                     'error_rate', 'error_rate_no_missing'])
 
 def pull_samples(data_dir, chroms, dot_in_name=False):
@@ -96,20 +96,24 @@ def pull_error_counts(samples, param_file, gens, obss):
         
     return counts
 
-def pull_num_sites(samples, param_file):
+def pull_num_sites(d, chroms):
+    all_num_sites = []
+    for famgen_dir, param_file in zip(d['family_genotype_dir'], d['param_file']):
+        samples = pull_samples(famgen_dir, chroms)
 
-    with open(param_file, 'r') as f:
-        params = json.load(f)
-    
-    num_sites = np.zeros((len(samples.sample_ids),))
-    num_sites[:] = np.nan
-                
-    for i, (sample_id, family) in enumerate(zip(samples.sample_ids, samples.families)):
-        key = '%s.%s' % (family, sample_id)
-        if key in params:
-            num_sites[i] = sum([params[key]['observed_%s' % g] for g in ['0/0', '0/1', '1/1']])
+        with open(param_file, 'r') as f:
+            params = json.load(f)
         
-    return num_sites
+        num_sites = np.zeros((len(samples.sample_ids),))
+        num_sites[:] = np.nan
+                    
+        for i, (sample_id, family) in enumerate(zip(samples.sample_ids, samples.families)):
+            key = '%s.%s' % (family, sample_id)
+            if key in params:
+                num_sites[i] = sum([params[key]['observed_%s' % g] for g in ['0/0', '0/1', '1/1', './.']])
+        all_num_sites.append(num_sites)
+        
+    return np.hstack(all_num_sites)
 
 def pull_precision_recall(samples, param_file):
     with open(param_file, 'r') as f:
@@ -119,21 +123,29 @@ def pull_precision_recall(samples, param_file):
     het_precision[:] = np.nan
     het_recall = np.zeros((len(samples.sample_ids),))
     het_recall[:] = np.nan
+    het_F1 = np.zeros((len(samples.sample_ids),))
+    het_F1[:] = np.nan
 
     homalt_precision = np.zeros((len(samples.sample_ids),))
     homalt_precision[:] = np.nan
     homalt_recall = np.zeros((len(samples.sample_ids),))
     homalt_recall[:] = np.nan
+    homalt_F1 = np.zeros((len(samples.sample_ids),))
+    homalt_F1[:] = np.nan
 
     het_precision_upper_bound = np.zeros((len(samples.sample_ids),))
     het_precision_upper_bound[:] = np.nan
     het_recall_upper_bound = np.zeros((len(samples.sample_ids),))
     het_recall_upper_bound[:] = np.nan
+    het_F1_upper_bound = np.zeros((len(samples.sample_ids),))
+    het_F1_upper_bound[:] = np.nan
 
     homalt_precision_upper_bound = np.zeros((len(samples.sample_ids),))
     homalt_precision_upper_bound[:] = np.nan
     homalt_recall_upper_bound = np.zeros((len(samples.sample_ids),))
     homalt_recall_upper_bound[:] = np.nan
+    homalt_F1_upper_bound = np.zeros((len(samples.sample_ids),))
+    homalt_F1_upper_bound[:] = np.nan
 
     error_rate = np.zeros((len(samples.sample_ids),))
     error_rate[:] = np.nan
@@ -145,13 +157,17 @@ def pull_precision_recall(samples, param_file):
         if key in params:
             het_precision[i] = params[key]['precision_0/1']
             het_recall[i] = params[key]['recall_0/1']
+            het_F1[i] = params[key]['F1_0/1']
             homalt_precision[i] = params[key]['precision_1/1']
             homalt_recall[i] = params[key]['recall_1/1']
+            homalt_F1[i] = params[key]['F1_1/1']
 
             het_precision_upper_bound[i] = params[key]['upper_bound[precision_0/1]']
             het_recall_upper_bound[i] = params[key]['upper_bound[recall_0/1]']
+            het_F1_upper_bound[i] = params[key]['upper_bound[F1_0/1]']
             homalt_precision_upper_bound[i] = params[key]['upper_bound[precision_1/1]']
             homalt_recall_upper_bound[i] = params[key]['upper_bound[recall_1/1]']
+            homalt_F1_upper_bound[i] = params[key]['upper_bound[F1_1/1]']
 
             match = params[key]['E[obs=0/0, true_gen=0/0]'] + params[key]['E[obs=0/1, true_gen=0/1]'] + params[key]['E[obs=1/1, true_gen=1/1]'] 
             error = params[key]['E[obs=0/1, true_gen=0/0]'] + params[key]['E[obs=1/1, true_gen=0/0]'] + params[key]['E[obs=./., true_gen=0/0]'] + \
@@ -164,8 +180,8 @@ def pull_precision_recall(samples, param_file):
             error_rate[i] = error/(error+match)
             error_rate_no_missing[i] = error_no_missing/(error_no_missing+match)
         
-    return PrecisionRecall(het_precision, het_recall, homalt_precision, homalt_recall,
-        het_precision_upper_bound, het_recall_upper_bound, homalt_precision_upper_bound, homalt_recall_upper_bound,
+    return PrecisionRecall(het_precision, het_recall, het_F1, homalt_precision, homalt_recall, homalt_F1,
+        het_precision_upper_bound, het_recall_upper_bound, het_F1_upper_bound, homalt_precision_upper_bound, homalt_recall_upper_bound, homalt_F1_upper_bound,
         error_rate, error_rate_no_missing)
 
 def mad_outlier_detection(x):
@@ -180,7 +196,7 @@ def process_datasets(datasets, chroms):
             d['family_genotype_dir'] = [d['family_genotype_dir']]
             d['param_file'] = [d['param_file']]
             
-        for key in ['precision1', 'precision2', 'recall1', 'recall2']:
+        for key in ['precision1', 'precision2', 'recall1', 'recall2', 'F11', 'F12']:
             d['%s_estimates' % key] = []
             d['%s_upper_bounds' % key] = []
             d['%s_samples' % key] = []
@@ -218,7 +234,7 @@ def process_datasets(datasets, chroms):
             print('num removed due to too many non-Mendelian sites', np.sum(is_nm_outlier))
 
 
-            for key in ['precision1', 'precision2', 'recall1', 'recall2']:
+            for key in ['precision1', 'precision2', 'recall1', 'recall2', 'F11', 'F12']:
                 estimates = getattr(precision_recall, key)
                 upper_bounds = getattr(precision_recall, '%s_upper_bound' % key)
                 indices = include_sample & ~np.isnan(estimates) & ~np.isnan(upper_bounds) & ~is_nm_outlier & ~is_missing_outlier
@@ -229,7 +245,7 @@ def process_datasets(datasets, chroms):
             d['error_rate_no_missing'].extend(precision_recall.error_rate_no_missing[indices])
             print(d['precision1_estimates'][-1].shape)
                 
-        for key in ['precision1', 'precision2', 'recall1', 'recall2']:
+        for key in ['precision1', 'precision2', 'recall1', 'recall2', 'F11', 'F12']:
             d['%s_estimates' % key] = np.hstack(d['%s_estimates' % key])
             d['%s_upper_bounds' % key] = np.hstack(d['%s_upper_bounds' % key])
             print(d['%s_estimates' % key].shape, d['%s_upper_bounds' % key].shape)

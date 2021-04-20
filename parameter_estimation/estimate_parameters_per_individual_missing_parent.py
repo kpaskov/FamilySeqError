@@ -7,7 +7,6 @@ from collections import Counter, defaultdict
 import json
 from os import listdir
 import random
-from calculate_metrics import add_observed_counts, add_estimated_error_rates, add_expected_counts, add_precision_recall
 
 import argparse
 
@@ -128,15 +127,9 @@ else:
     }
 
 mendelian_trios = {
-    ('0/0', '0/0', '0/0'),
-    ('0/0', '0/1', '0/0'), ('0/0', '0/1', '0/1'),
-    ('0/0', '1/1', '0/1'),
-    ('0/1', '0/0', '0/0'), ('0/1', '0/0', '0/1'),
-    ('0/1', '0/1', '0/0'), ('0/1', '0/1', '0/1'), ('0/1', '0/1', '1/1'),
-    ('0/1', '1/1', '0/1'), ('0/1', '1/1', '1/1'),
-    ('1/1', '0/0', '0/1'),
-    ('1/1', '0/1', '0/1'), ('1/1', '0/1', '1/1'),
-    ('1/1', '1/1', '1/1')
+    ('0/0', '0/0'), ('0/0', '0/1'), 
+    ('0/1', '0/0'), ('0/1', '0/1'), ('0/1', '1/1'), 
+    ('1/1', '0/1'), ('1/1', '1/1'), 
 }
 
 print('num error types', len(errors))
@@ -208,7 +201,7 @@ def get_mendelian(m):
     for famgen in product(range(len(obss)), repeat=m):
         is_mend = True
         for j in range(2, m):
-            if not mendelian_check(tuple(obss[famgen[x]] for x in [0, 1, j])):
+            if not mendelian_check(tuple(obss[famgen[x]] for x in [0, j])):
                 is_mend = False
         is_mendelian[famgen] = is_mend
     return is_mendelian
@@ -383,6 +376,52 @@ def estimate_real_counts(is_mendelian, error_to_index, obs_counts, error_rates):
 
 
 
+## ------------------------------------ Calculate Various Metrics ------------------------------------
+
+def add_observed_counts(params, counts, j, m):
+    for i, obs in enumerate(obss):
+        params['observed_%s' % obs] = int(np.sum(counts[tuple(i if x==j else slice(None, None, None) for x in range(m))]))
+
+def add_estimated_error_rates(params, error_rates, lower_bounds, j):
+    for gen_index, gen in enumerate(gens):
+        for obs_index, obs in enumerate(obss):
+            params['-log10(P[obs=%s|true_gen=%s])' % (obs, gen)] = float(-np.log10(error_rates[j, gen_index, obs_index]))
+            params['lower_bound[-log10(P[obs=%s|true_gen=%s])]' % (obs, gen)] = float(-np.log10(lower_bounds[j, gen_index, obs_index]))
+
+def add_expected_counts(params):
+    # we assume error rates are low, so the number of times we observe a genotype is a good estimate of the number of times this genotype actually occurs.
+    for gen_index, gen in enumerate(gens):
+        for obs_index, obs in enumerate(obss):
+            params['E[obs=%s, true_gen=%s]' % (obs, gen)] = params['observed_%s' % gen] * (10.0**-params['-log10(P[obs=%s|true_gen=%s])' % (obs, gen)])
+            params['lower_bound[E[obs=%s, true_gen=%s]]' % (obs, gen)] = params['observed_%s' % gen] * (10.0**-params['lower_bound[-log10(P[obs=%s|true_gen=%s])]' % (obs, gen)])
+
+def add_precision_recall(params):
+    # precision: TP/(TP + FP)
+    # let n_0 = # of times the real genotype is 0/0
+    # E[TP] = n_1 * p_11
+    # E[FP] = n_0 * p_01
+
+    # we again assume error rates are low, so the number of times we observe a genotype is a good estimate of the number of times this genotype actually occurs.
+
+    for var in gens:
+        TP = params['E[obs=%s, true_gen=%s]' % (var, var)]
+        FP = np.sum([params['E[obs=%s, true_gen=%s]' % (var, gen)] for gen in gens if var != gen])
+        FN = np.sum([params['E[obs=%s, true_gen=%s]' % (obs, var)] for obs in obss if var != obs])
+        
+
+        FP_lb = np.sum([params['lower_bound[E[obs=%s, true_gen=%s]]' % (var, gen)] for gen in gens if var != gen])
+        FN_lb = np.sum([params['lower_bound[E[obs=%s, true_gen=%s]]' % (obs, var)] for obs in obss if var != obs])
+
+        params['precision_%s' % var] = TP/(TP+FP)
+        params['recall_%s' % var] = TP/(TP+FN)
+        params['FPR_%s' % var] = FP/(TP+FP)
+        params['FNR_%s' % var] = FN/(TP+FN)
+        params['F1_%s' % var] = TP/(TP + 0.5*(FP+FN))
+
+        params['upper_bound[precision_%s]' % var] = TP/(TP+FP_lb)
+        params['upper_bound[recall_%s]' % var] = TP/(TP+FN_lb)
+        params['upper_bound[F1_%s]' % var] = TP/(TP + 0.5*(FP_lb+FN_lb))
+
 # ------------------------------------ Estimate Error Rates ------------------------------------
 
 params = {}
@@ -423,10 +462,10 @@ for i, famkey in enumerate(famkeys):
                             'family_size': int(m), 
                             'missing_count': int(np.sum(counts.take(indices=3, axis=j))),
                             'total_count': int(np.sum(counts))}
-            add_observed_counts(ind_params, counts, j, m, gens, obss)
-            add_estimated_error_rates(ind_params, error_rates, lower_bounds, j, gens, obss)
-            add_expected_counts(ind_params, gens, obss)
-            add_precision_recall(ind_params, gens, obss)
+            add_observed_counts(ind_params, counts, j, m)
+            add_estimated_error_rates(ind_params, error_rates, lower_bounds, j)
+            add_expected_counts(ind_params)
+            add_precision_recall(ind_params)
 
             params[famkey[0] + '.' + inds[j]] = ind_params
 
@@ -435,6 +474,8 @@ for i, famkey in enumerate(famkeys):
         print('ERROR', err)
 
 print('Total errors', num_error_families)
+print('Total families complete', len(famkeys)-num_error_families)
+
 
 # ------------------------------------ Write to file ------------------------------------
 
