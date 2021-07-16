@@ -3,6 +3,7 @@ import gzip
 import numpy as np
 import scipy.sparse as sparse
 from os import listdir
+import json
 
 data_dir = sys.argv[1]
 
@@ -56,8 +57,8 @@ for chrom in chroms:
         
         if pass_from_gen:
             # pull male/female indices
-            with open('%s/chr.%s.gen.samples.txt' % (data_dir, chrom), 'r') as f:
-                sample_ids = [x.strip() for x in f]
+            with open('%s/samples.json' % data_dir, 'r') as f:
+                sample_ids = json.load(f)
 
             sample_id_to_sex = dict()
             # Sex (1=male; 2=female; other=unknown)
