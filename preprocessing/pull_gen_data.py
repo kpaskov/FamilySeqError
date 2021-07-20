@@ -112,7 +112,7 @@ if args.chrom in contigs:
 elif 'chr%s' % args.chrom in contigs:
     contig = contigs['chr%s' % args.chrom]
 else:
-    raise Exception('Trouble finding contig', args.chrom, 'in', contig_names)
+    raise Exception('Trouble finding contig', args.chrom, 'in', contigs)
 print('Chrom length', contig.length)
 
 
