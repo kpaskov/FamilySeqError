@@ -13,7 +13,7 @@ parser.add_argument('chrom', type=str, help='Chromosome.')
 parser.add_argument('out_dir', type=str, help='Directory to write counts.')
 parser.add_argument('--include', type=str, default=None, help='Regions to include (.bed).')
 parser.add_argument('--exclude', type=str, default=None, help='Regions to exclude (.bed).')
-parser.add_argument('--use_pass', type=bool, default=True, help='If TRUE, use pass filter to filter out variants that do not PASS. If FALSE, ignore PASS filter.')
+parser.add_argument('--use_pass', action='store_true', default=False, help='If flag is present, use pass filter to filter out variants that do not PASS. If flag is absent, ignore PASS filter.')
 #parser.add_argument('--use_bases', action='store_true', default=False, help='Pull counts per base (ex. AA, AT) rather than per genotype (ex. 0/0, 0/1).')
 args = parser.parse_args()
 
