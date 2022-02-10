@@ -92,8 +92,11 @@ for gen_file in gen_files:
         is_snp = pos_data[:, 2].astype(bool)
         is_pass = pos_data[:, 3].astype(bool)
 
-        if not args.use_pass:
-            is_pass[:] = True
+        is_ok_pass = np.ones((pos_data.shape[0],), dtype=bool)
+        if args.exclude_nopass:
+            is_ok_pass = is_pass
+        elif args.exclude_pass:
+            is_ok_pass = ~is_pass
 
         is_ok_include = np.ones(is_snp.shape, dtype=bool)
         if include_regions is not None:
@@ -106,7 +109,7 @@ for gen_file in gen_files:
             is_ok_exclude = np.remainder(insert_loc, 2)==0
 
         print('not SNP', np.sum(~is_snp))
-        print('not PASS', np.sum(~is_pass))
+        print('filtered by PASS', np.sum(~is_ok_pass))
         print('filtered by include', np.sum(~is_ok_include))
         print('filtered by exclude', np.sum(~is_ok_exclude))
 
@@ -114,7 +117,7 @@ for gen_file in gen_files:
         A = sparse.load_npz('%s/%s' % (args.data_dir, gen_file))
 
         # filter out snps
-        A = A[:, is_snp & is_pass & is_ok_include & is_ok_exclude]
+        A = A[:, is_snp & is_ok_pass & is_ok_include & is_ok_exclude]
         print('genotype matrix prepared', A.shape)
     else:
         A = np.zeros((0, 0))
