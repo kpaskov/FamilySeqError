@@ -13,6 +13,7 @@ parser.add_argument('chrom', type=str, help='Chromosome.')
 parser.add_argument('out_dir', type=str, help='Directory to write counts.')
 parser.add_argument('--include', type=str, default=None, help='Regions to include (.bed).')
 parser.add_argument('--exclude', type=str, default=None, help='Regions to exclude (.bed).')
+parser.add_argument('--use_pass', type=bool, default=True, help='If TRUE, use pass filter to filter out variants that do not PASS. If FALSE, ignore PASS filter.')
 #parser.add_argument('--use_bases', action='store_true', default=False, help='Pull counts per base (ex. AA, AT) rather than per genotype (ex. 0/0, 0/1).')
 args = parser.parse_args()
 
@@ -60,7 +61,6 @@ print('excluding %s bp' % ('no' if exclude_regions is None else str(exclude_cove
 # pull families with sequence data
 with open(sample_file, 'r') as f:
     sample_id_to_index = dict([(sample_id, i) for i, sample_id in enumerate(json.load(f))])
-
 # pull families from ped file
 families = dict()
 with open(args.ped_file, 'r') as f:	
@@ -90,6 +90,9 @@ for gen_file in gen_files:
     if pos_data.shape[0]>0:
         is_snp = pos_data[:, 2].astype(bool)
         is_pass = pos_data[:, 3].astype(bool)
+
+        if not args.use_pass:
+            is_pass[:] = True
 
         is_ok_include = np.ones(is_snp.shape, dtype=bool)
         if include_regions is not None:
