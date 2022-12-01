@@ -3,7 +3,7 @@ This project contains code for estimating error rates in sequencing data using f
 1. Preprocessing.
 Start by getting your genomic data into numpy format. If your data is currently in VCF format, split by chromosome, this can be done by running
 
-python preprocessing/pull_gen_data.py [vcf_file] [data_dir] [chrom]
+python preprocessing/pull_gen_data.py [vcf_file] [assembly] [output_dir] [chrom]
 
 If your vcf files don't have filters applied (for example no variant is PASS) or you'd like to apply a different type of filter, use preprocessing/pull_pass.py
 
