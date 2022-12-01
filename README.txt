@@ -6,6 +6,11 @@ Assuming your data is currently in VCF format (with .tbi files), split by chromo
 
 python preprocessing/pull_gen_data.py [vcf_file] [assembly] [output_dir] [chrom]
 
+If you have a large WGS dataset, it may be more convenient to break the data into smaller segments using the following flags
+--batch_size
+--batch_num
+--maxsize
+
 If your vcf files don't have filters applied (for example no variant is PASS) or you'd like to apply a different type of filter 
 for downstream analysis, use 
 
@@ -16,6 +21,19 @@ which has options
 passes variants on X with <10% missing in females and <20% missing in males)
 --pass_all (passes all variants)
 --pass_from_qual [cutoff] (passes variants whose QUAL score is better than cutoff)
+
+This should result in a directory structure that looks like this
+data_dir
+- genotypes
+- - info.json
+- - samples.json
+- - chr.1.0.gen.npz
+- - chr.1.0.gen.coordinates.npy
+- - chr.1.0.gen.variants.txt.gz
+- - chr.2.0.gen.npz
+- - chr.2.0.gen.coordinates.npy
+- - chr.2.0.gen.variants.txt.gz
+...
 
 2. Pull family genotype counts.
 A family genotype is a tuple of genotypes, representing the genotypes of a mother, father, and their child(ren), respectively, at a given site. The following code counts the number of times each family genotype occurs for each family on each chromosome.
