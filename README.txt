@@ -1,7 +1,7 @@
 This project contains code for estimating error rates in sequencing data using family structure.
 
 1. Preprocessing.
-Start by getting your genomic data into numpy format. If your data is currently in VCF format, split by chromosome, this can be done by running
+Start by getting your genomic data into numpy format. First, create an output directory. Then create a subdirectory within that directory named genotypes. Assuming your data is currently in VCF format, split by chromosome, now run
 
 python preprocessing/pull_gen_data.py [vcf_file] [assembly] [output_dir] [chrom]
 
