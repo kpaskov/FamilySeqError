@@ -6,7 +6,16 @@ Assuming your data is currently in VCF format (with .tbi files), split by chromo
 
 python preprocessing/pull_gen_data.py [vcf_file] [assembly] [output_dir] [chrom]
 
-If your vcf files don't have filters applied (for example no variant is PASS) or you'd like to apply a different type of filter, use preprocessing/pull_pass.py
+If your vcf files don't have filters applied (for example no variant is PASS) or you'd like to apply a different type of filter 
+for downstream analysis, use 
+
+python preprocessing/pull_pass.py [data_dir (output directory from above command)]
+
+which has options 
+--pass_from_gen [ped_file] (passes variants on autosomes with <10% missing, passes variants on Y with <20% missing in males, 
+passes variants on X with <10% missing in females and <20% missing in males)
+--pass_all (passes all variants)
+--pass_from_qual [cutoff] (passes variants whose QUAL score is better than cutoff)
 
 2. Pull family genotype counts.
 A family genotype is a tuple of genotypes, representing the genotypes of a mother, father, and their child(ren), respectively, at a given site. The following code counts the number of times each family genotype occurs for each family on each chromosome.
