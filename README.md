@@ -6,7 +6,7 @@ This project contains code for estimating error rates in sequencing data using f
 ## Input and output
 
 ## Instructions for running code
-1. Start by getting your genomic data into numpy format using [(https://github.com/kpaskov/VCFtoNPZ)](https://github.com/kpaskov/VCFtoNPZ). 
+1. Start by getting your genomic data into numpy format using [(https://github.com/kpaskov/VCFtoNPZ)]https://github.com/kpaskov/VCFtoNPZ. 
 
 2. Pull family genotype counts.
 A family genotype is a tuple of genotypes, representing the genotypes of a mother, father, and their child(ren), respectively, at a given site. The following code counts the number of times each family genotype occurs for each family on each chromosome.
