@@ -15,6 +15,4 @@ python parameter_estimation/pull_famgen_counts.py [data_dir] [ped_file] [chrom] 
 3. Estimate sequencing error rates.
 Now we can estimate error rates for each individual. Error rates are written to output_file in .json format.
 
-python parameter_estimation/estimate_parameters_per_individual.py [data_dir] [output_file]
-
-fixed [('AU035806', 'mat'), ('AU035806', 'pat'), ('AU035810', 'mat'), ('AU035810', 'pat'), ('AU035812', 'mat'), ('AU035812', 'pat')]
+python parameter_estimation/estimate_parameters.py [data_dir] [output_file]
