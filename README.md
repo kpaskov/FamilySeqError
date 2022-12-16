@@ -40,19 +40,23 @@ data_dir
 2. Pull family genotype counts.
 A family genotype is a tuple of genotypes, representing the genotypes of a mother, father, and their child(ren), respectively, at a given site. The following code counts the number of times each family genotype occurs for each family on each segment of each chromosome. It produces a series of files `[output_dir]/chr.[chrom].[batch_num].famgen.counts.txt` which contain a line for each family in the dataset, representing the number of times each family genotype occurs for that family within the corresponding segment of chromosome [chrom].
 
-`python parameter_estimation/pull_famgen_counts.py [data_dir] [ped_file] [chrom]`
+`python pull_famgen_counts.py [data_dir] [ped_file] [chrom]`
 
 The script has options 
 - `--use_pass` which uses the PASS flag (from the VCF file) to filter variants. Only variants that PASS are counted.
 - `--include [bed_file]` which uses a BED file to filter variants. Only variants within the intervals listed in the BED file are counted.
 - `--exlude [bed_file]` which uses a BED file to filter variants. Only variants outside the intervals listed in the BED file are counted.
 - `--exlude [bed_file]` which uses a BED file to filter variants. Only variants outside the intervals listed in the BED file are counted.
-- `--output_dir_name` which creates a subdirectory in `[data_dir]/family_genotype_counts` and stores the `*.famgen.counts.txt` files there. This option is useful when creating different types of family genotype counts from the same dataset, for example counts in low-complexity and high-complexity regions.
+- `--count_type [output_dir]` which creates a subdirectory `[data_dir]/family_genotype_counts/[output_dir]` and stores the `*.famgen.counts.txt` files there. This option is useful when creating different types of family genotype counts from the same dataset, for example counts in low-complexity and high-complexity regions.
 
 3. Estimate sequencing error rates.
 Now we can estimate error rates for each individual. Error rates are written to `[output_file]` in .json format.
 
-`python parameter_estimation/estimate_parameters_per_individual.py [data_dir] [output_file]`
+`python estimate_sequencing_error_rates.py [data_dir]`
+
+The script has options 
+- `--is_ngs` to be used when working with next-gen sequencing data.
+- `--count_type [input_dir]` which uses the family genotype counts stored in `[data_dir]/family_genotype_counts/[input_dir]` to estimate sequencing error rates. This option is useful when creating different types of family genotype counts from the same dataset, for example counts in low-complexity and high-complexity regions.
 
 ## Instructions for estimating error rates on the X-chromosome
 
