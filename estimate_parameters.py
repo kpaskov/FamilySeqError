@@ -5,23 +5,32 @@ from itertools import product
 import cvxpy as cp
 from collections import Counter, defaultdict
 import json
-from os import listdir
+import os
 import random
 from calculate_metrics import add_observed_counts, add_estimated_error_rates, add_expected_counts, add_precision_recall
 
 import argparse
 
 parser = argparse.ArgumentParser(description='Estimate parameters.')
-parser.add_argument('data_dir', type=str, help='Family genotype count directory.')
-parser.add_argument('out_file', type=str, help='Output file.')
+parser.add_argument('data_dir', type=str, help='Data directory of genotype data in .npy format produced using the VCFtoNPZ project.')
 parser.add_argument('--is_ngs', action='store_true', default=False, help='True if this data is NGS. The important point is whether or not sites where all individuals are homozygous reference are sometimes dropped from the VCF. If this happens, use flag --is_ngs')
 parser.add_argument('--group_missing', action='store_true', default=False, help='If your dataset has very few missing (./.) calls, it is best to group them to get better estimates.')
 parser.add_argument('--ignore_missing', action='store_true', default=False, help='Ignore missing calls when estimating error rates.')
-parser.add_argument('--estimate_all_homref', action='store_true', default=False, help='Used to estimate the number of sites where the whole family is homref. This method is still under development')
 parser.add_argument('--subsample_children', type=int, default=7, help='For each family, if there are more children than this many children, subsample the number of children used.')
 parser.add_argument('--family', type=str, default=None, help='Estimate parameters for a given family only.')
 parser.add_argument('--chrom', type=str, default=None, help='Chrom to use.')
+parser.add_argument('--count_type', type=str, default=None, help='Name of count type. Used to differentiate between counts in high-complexity vs low-complexity regions, for example.')
 args = parser.parse_args()
+
+if not os.path.exists('params'):
+    os.makedirs('params')
+
+if args.count_type is None:
+    input_dir = '%s/family_genotype_counts' % args.data_dir
+    out_file = 'params/%s_params.json' % args.data_dir
+else:
+    input_dir = '%s/family_genotype_counts/%s' % (args.data_dir, args.count_type)
+    out_file = 'params/%s_%s_params.json' % (args.data_dir, args.count_type)
 
 if args.chrom is None:
     chroms = [str(x) for x in range(1, 23)]
@@ -156,9 +165,9 @@ family_to_indices = dict()
 for i, chrom in enumerate(chroms):
     print(chrom, end=' ')
 
-    count_files = sorted([f for f in listdir(args.data_dir) if ('chr.%s.' % chrom) in f and 'famgen.counts.txt' in f])
+    count_files = sorted([f for f in os.listdir(input_dir) if ('chr.%s.' % chrom) in f and 'famgen.counts.txt' in f])
     for count_file in count_files:
-        with open('%s/%s' % (args.data_dir, count_file), 'r') as f:
+        with open('%s/%s' % (input_dir, count_file), 'r') as f:
             for line in f:
                 famkey = line.strip().split('\t', maxsplit=1)[0]
                 if args.family==None or args.family==famkey:
@@ -407,19 +416,9 @@ for i, famkey in enumerate(famkeys):
         counts = family_to_counts[famkey]
         real_counts = counts.copy().astype(float)
 
-        if args.estimate_all_homref:
-            for famgen in product(np.arange(len(obss)), repeat=m):
-                if not has_variant(famgen):
-                    real_counts[famgen] = np.nan
 
         print('-------------Estimate error rates-------------')
         error_rates, lower_bounds, nm_count = estimate_error_rates(is_mendelian, error_to_index, counts, real_counts)
-
-        if args.estimate_all_homref:
-            print('-------------Estimate real counts-------------')
-            real_counts = estimate_real_counts(is_mendelian, error_to_index, counts, error_rates)
-            print('-------------Estimate error rates-------------')
-            error_rates, lower_bounds, nm_count = estimate_error_rates(is_mendelian, error_to_index, counts, real_counts)
 
         for j in range(len(inds)):
             # observed counts
@@ -442,5 +441,5 @@ print('Total errors', num_error_families)
 
 # ------------------------------------ Write to file ------------------------------------
 
-with open(args.out_file, 'w+') as f:
+with open(out_file, 'w+') as f:
     json.dump(params, f, indent=4)

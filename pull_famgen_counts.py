@@ -7,10 +7,10 @@ import argparse
 import json
 
 parser = argparse.ArgumentParser(description='Pull family genotype counts.')
-parser.add_argument('data_dir', type=str, help='Directory of genotype data in .npy format produced using the VCFtoNPZ project.')
+parser.add_argument('data_dir', type=str, help='Data directory of genotype data in .npy format produced using the VCFtoNPZ project.')
 parser.add_argument('ped_file', type=str, help='Pedigree file (.ped).')
 parser.add_argument('chrom', type=str, help='Chromosome.')
-parser.add_argument('--output_dir_name', type=str, default=None, help='Name of directory to use for output.')
+parser.add_argument('--count_type', type=str, default=None, help='Name of count type. Used to differentiate between counts in high-complexity vs low-complexity regions, for example.')
 parser.add_argument('--include', type=str, default=None, help='Regions to include (.bed).')
 parser.add_argument('--exclude', type=str, default=None, help='Regions to exclude (.bed).')
 parser.add_argument('--out', type=str, default=None, help='Regions to include (.bed).')
@@ -21,10 +21,10 @@ args = parser.parse_args()
 if not os.path.exists('%s/family_genotype_counts' % args.data_dir):
     os.makedirs('%s/family_genotype_counts' % args.data_dir)
 
-if args.output_dir_name is None:
+if args.count_type is None:
     output_dir = '%s/family_genotype_counts'
 else:
-    output_dir = '%s/family_genotype_counts/%s' % (args.data_dir, args.output_dir_name)
+    output_dir = '%s/family_genotype_counts/%s' % (args.data_dir, args.count_type)
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
