@@ -26,7 +26,7 @@ args = parser.parse_args()
 if args.chrom is None:
     chroms = [str(x) for x in range(1, 23)]
 else:
-    chroms = ['X']
+    chroms = [args.chrom]
 
 
 gens = ['0/0', '0/1', '1/1']
