@@ -32,13 +32,21 @@ data_dir
 - - chr.1.0.famgen.counts.txt
 - - chr.1.1.famgen.counts.txt
 ...
+- sequencing_error_rates
+- - errors.json
 ```
+
+The `info.json` file contains metadata including the reference assembly (GRch37 or GRch38) used to produce the variant calls, the vcf_directory used to generate the data, and if relevant the batch_size used to generate the data. It also includes the path to the ped_file used to generate the counts, as well as the variant filters applied.
+
+The `chr.[chrom].[batch_num].famgen.counts.txt` files contain counts of the number of times each family genotype combination occurs within the corresponding segment of chromosome `[chrom]`, with variant filters applied. The `[data_dir]/family_genotype_counts` directory may contain subdirectories corresponding to different variant filters (see `--count_type` option below).
+
+The `errors.json` file contains the sequencing error rates estimated by our method. There may be multiple files in the `[data_dir]/sequencing_error_rates` directory corresponding to different variant filters. For example, our method can be used to estimate sequencing error rates in low-complexity vs high-complexity regions (again, see `--count_type` option below).
 
 ## Instructions for running code (autosomal error rates)
 1. Start by getting your genomic data into numpy format using https://github.com/kpaskov/VCFtoNPZ. 
 
 2. Pull family genotype counts.
-A family genotype is a tuple of genotypes, representing the genotypes of a mother, father, and their child(ren), respectively, at a given site. The following code counts the number of times each family genotype occurs for each family on each segment of each chromosome. It produces a series of files `[output_dir]/chr.[chrom].[batch_num].famgen.counts.txt` which contain a line for each family in the dataset, representing the number of times each family genotype occurs for that family within the corresponding segment of chromosome [chrom].
+A family genotype is a tuple of genotypes, representing the genotypes of a mother, father, and their child(ren), respectively, at a given site. The following code counts the number of times each family genotype occurs for each family on each segment of each chromosome. It produces a series of files `[output_dir]/chr.[chrom].[batch_num].famgen.counts.txt` which contain a line for each family in the dataset, representing the number of times each family genotype occurs for that family within the corresponding segment of chromosome `[chrom]`.
 
 `python pull_famgen_counts.py [data_dir] [ped_file] [chrom]`
 
