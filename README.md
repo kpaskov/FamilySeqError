@@ -47,10 +47,10 @@ The script has options
 - `--include [bed_file]` which uses a BED file to filter variants. Only variants within the intervals listed in the BED file are counted.
 - `--exlude [bed_file]` which uses a BED file to filter variants. Only variants outside the intervals listed in the BED file are counted.
 - `--exlude [bed_file]` which uses a BED file to filter variants. Only variants outside the intervals listed in the BED file are counted.
-- `--output_dir_name` which creates a subdirectory 
+- `--output_dir_name` which creates a subdirectory in `[data_dir]/family_genotype_counts` and stores the `*.famgen.counts.txt` files there. This option is useful when creating different types of family genotype counts from the same dataset, for example counts in low-complexity and high-complexity regions.
 
 3. Estimate sequencing error rates.
-Now we can estimate error rates for each individual. Error rates are written to output_file in .json format.
+Now we can estimate error rates for each individual. Error rates are written to `[output_file]` in .json format.
 
 `python parameter_estimation/estimate_parameters_per_individual.py [data_dir] [output_file]`
 
