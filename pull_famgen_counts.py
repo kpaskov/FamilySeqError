@@ -42,7 +42,7 @@ obss = ['0/0', '0/1', '1/1', './.']
 with open('%s/genotypes/info.json' % args.data_dir, 'r') as f:
     info = json.load(f)
 
-with open(output_dir, 'w+') as f:
+with open('%s/info.json' % output_dir, 'w+') as f:
     json.dump(info, f)
 
 def process_bedfile(bed_file):
