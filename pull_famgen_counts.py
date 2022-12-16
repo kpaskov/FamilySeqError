@@ -11,8 +11,8 @@ parser.add_argument('data_dir', type=str, help='Data directory of genotype data 
 parser.add_argument('ped_file', type=str, help='Pedigree file (.ped).')
 parser.add_argument('chrom', type=str, help='Chromosome.')
 parser.add_argument('--count_type', type=str, default=None, help='Name of count type. Used to differentiate between counts in high-complexity vs low-complexity regions, for example.')
-parser.add_argument('--include', type=str, default=None, help='Regions to include (.bed).')
-parser.add_argument('--exclude', type=str, default=None, help='Regions to exclude (.bed).')
+parser.add_argument('--include', type=str, default=None, nargs='+', help='Regions to include (.bed).')
+parser.add_argument('--exclude', type=str, default=None, nargs='+', help='Regions to exclude (.bed).')
 parser.add_argument('--use_pass', action='store_true', default=False, help='If flag is present, use apply pass filter to filter out variants that do not PASS. If flag is absent, ignore PASS filter.')
 #parser.add_argument('--use_bases', action='store_true', default=False, help='Pull counts per base (ex. AA, AT) rather than per genotype (ex. 0/0, 0/1).')
 args = parser.parse_args()
@@ -41,7 +41,6 @@ obss = ['0/0', '0/1', '1/1', './.']
 with open('%s/genotypes/info.json' % args.data_dir, 'r') as f:
     info = json.load(f)
 
-
 info['ped_file'] = args.ped_file
 info['include'] = args.include
 info['exclude'] = args.exclude
@@ -67,11 +66,23 @@ def process_bedfile(bed_file):
                 coverage += (int(pieces[2])+1 - int(pieces[1]))
     return np.array(regions), coverage
 
-include_regions, include_coverage = (None, 0) if args.include is None else process_bedfile(args.include)
-exclude_regions, exclude_coverage = (None, 0) if args.exclude is None else process_bedfile(args.exclude)
+if args.include is not None:
+    include_regions = []
+    for include_file in args.include:
+        regions, coverage = process_bedfile(include_file)
+        include_regions.append(regions)
+        print('including %d bp (%s)' % (coverage, include_file))
+else:
+    include_regions = None
 
-print('including %s bp' % ('all' if include_regions is None else str(include_coverage)))
-print('excluding %s bp' % ('no' if exclude_regions is None else str(exclude_coverage)))
+if args.exclude is not None:
+    exclude_regions = []
+    for exclude_file in args.exclude:
+        regions, coverage = process_bedfile(exclude_file)
+        exclude_regions.append(regions)
+        print('excluding %d bp (%s)' % (coverage, exclude_file))
+else:
+    exclude_regions = None
 
 # pull families with sequence data
 with open(sample_file, 'r') as f:
@@ -106,30 +117,32 @@ for gen_file in gen_files:
         is_snp = pos_data[:, 2].astype(bool)
         is_pass = pos_data[:, 3].astype(bool)
 
-        is_ok_pass = np.ones((pos_data.shape[0],), dtype=bool)
+        is_ok = is_snp
+        print('starting SNPs: %d' % np.sum(is_ok))
+
         if args.use_pass:
-            is_ok_pass = is_pass
-
-        is_ok_include = np.ones(is_snp.shape, dtype=bool)
+            is_ok = is_ok & is_pass
+        print('surviving pass filter: %d' % np.sum(is_ok))
+        
         if include_regions is not None:
-            insert_loc = np.searchsorted(include_regions, pos_data[:, 1])
-            is_ok_include = np.remainder(insert_loc, 2)==1
+            for regions, filename in zip(include_regions, args.include):
+                insert_loc = np.searchsorted(regions, pos_data[:, 1])
+                is_ok_include = np.remainder(insert_loc, 2)==1
+                is_ok = is_ok & is_ok_include
+                print('surviving include filter: %d (%s)' % (np.sum(is_ok), filename))
 
-        is_ok_exclude = np.ones(is_snp.shape, dtype=bool)
         if exclude_regions is not None:
-            insert_loc = np.searchsorted(exclude_regions, pos_data[:, 1])
-            is_ok_exclude = np.remainder(insert_loc, 2)==0
-
-        print('not SNP', np.sum(~is_snp))
-        print('filtered by PASS', np.sum(~is_ok_pass))
-        print('filtered by include', np.sum(~is_ok_include))
-        print('filtered by exclude', np.sum(~is_ok_exclude))
+            for regions in exclude_regions:
+                insert_loc = np.searchsorted(exclude_regions, pos_data[:, 1])
+                is_ok_exclude = np.remainder(insert_loc, 2)==0
+                is_ok = is_ok & is_ok_exclude
+                print('surviving exclude filter: %d (%s)' % (np.sum(is_ok), filename))
 
         # Pull data together
         A = sparse.load_npz('%s/genotypes/%s' % (args.data_dir, gen_file))
 
         # filter out snps
-        A = A[:, is_snp & is_ok_pass & is_ok_include & is_ok_exclude]
+        A = A[:, is_ok]
         print('genotype matrix prepared', A.shape)
     else:
         A = np.zeros((0, 0))
