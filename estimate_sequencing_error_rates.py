@@ -22,15 +22,15 @@ parser.add_argument('--chrom', type=str, default=None, help='Chrom to use.')
 parser.add_argument('--count_type', type=str, default=None, help='Name of count type. Used to differentiate between counts in high-complexity vs low-complexity regions, for example.')
 args = parser.parse_args()
 
-if not os.path.exists('params'):
-    os.makedirs('params')
+if not os.path.exists('%s/sequencing_error_rates' % args.data_dir):
+    os.makedirs('%s/sequencing_error_rates' % args.data_dir)
 
 if args.count_type is None:
     input_dir = '%s/family_genotype_counts' % args.data_dir
-    out_file = 'params/%s_params.json' % args.data_dir
+    out_file = '%s/sequencing_error_rates/errors.json' % args.data_dir
 else:
     input_dir = '%s/family_genotype_counts/%s' % (args.data_dir, args.count_type)
-    out_file = 'params/%s_%s_params.json' % (args.data_dir, args.count_type)
+    out_file = '%s/sequencing_error_rates/%s_errors.json' % (args.data_dir, args.count_type)
 
 if args.chrom is None:
     chroms = [str(x) for x in range(1, 23)]

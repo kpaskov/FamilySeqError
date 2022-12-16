@@ -13,7 +13,6 @@ parser.add_argument('chrom', type=str, help='Chromosome.')
 parser.add_argument('--count_type', type=str, default=None, help='Name of count type. Used to differentiate between counts in high-complexity vs low-complexity regions, for example.')
 parser.add_argument('--include', type=str, default=None, help='Regions to include (.bed).')
 parser.add_argument('--exclude', type=str, default=None, help='Regions to exclude (.bed).')
-parser.add_argument('--out', type=str, default=None, help='Regions to include (.bed).')
 parser.add_argument('--use_pass', action='store_true', default=False, help='If flag is present, use apply pass filter to filter out variants that do not PASS. If flag is absent, ignore PASS filter.')
 #parser.add_argument('--use_bases', action='store_true', default=False, help='Pull counts per base (ex. AA, AT) rather than per genotype (ex. 0/0, 0/1).')
 args = parser.parse_args()
@@ -41,6 +40,12 @@ obss = ['0/0', '0/1', '1/1', './.']
 
 with open('%s/genotypes/info.json' % args.data_dir, 'r') as f:
     info = json.load(f)
+
+
+info['ped_file'] = args.ped_file
+info['include'] = args.include
+info['exclude'] = args.exclude
+info['use_pass'] = args.use_pass
 
 with open('%s/info.json' % output_dir, 'w+') as f:
     json.dump(info, f)
