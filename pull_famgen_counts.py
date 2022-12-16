@@ -7,10 +7,9 @@ import argparse
 import json
 
 parser = argparse.ArgumentParser(description='Pull family genotype counts.')
-parser.add_argument('data_dir', type=str, help='Directory of genotype data in .npy format.')
+parser.add_argument('data_dir', type=str, help='Directory of genotype data in .npy format produced using the VCFtoNPZ project.')
 parser.add_argument('ped_file', type=str, help='Pedigree file (.ped).')
 parser.add_argument('chrom', type=str, help='Chromosome.')
-parser.add_argument('out_dir', type=str, help='Directory to write counts.')
 parser.add_argument('--include', type=str, default=None, help='Regions to include (.bed).')
 parser.add_argument('--exclude', type=str, default=None, help='Regions to exclude (.bed).')
 parser.add_argument('--use_pass', action='store_true', default=False, help='If flag is present, use apply pass filter to filter out variants that do not PASS. If flag is absent, ignore PASS filter.')
@@ -25,14 +24,14 @@ if args.chrom == '24':
 if args.chrom == '25':
     args.chrom = 'MT'
 
-sample_file = '%s/samples.json' % args.data_dir
+sample_file = '%s/genotypes/samples.json' % args.data_dir
 
 obss = ['0/0', '0/1', '1/1', './.']
 
-with open('%s/info.json' % args.data_dir, 'r') as f:
+with open('%s/genotypes/info.json' % args.data_dir, 'r') as f:
     info = json.load(f)
 
-with open('%s/info.json' % args.out_dir, 'w+') as f:
+with open('%s/family_genotype_counts/info.json' % args.data_dir, 'w+') as f:
     json.dump(info, f)
 
 def process_bedfile(bed_file):
@@ -79,14 +78,14 @@ with open(args.ped_file, 'r') as f:
 print('families %d' % len(families))
 
 
-gen_files = sorted([f for f in listdir(args.data_dir) if ('chr.%s.' % args.chrom) in f and 'gen.npz' in f], key=lambda x: int(x.split('.')[2]))
+gen_files = sorted([f for f in listdir('%s/genotypes' % args.data_dir) if ('chr.%s.' % args.chrom) in f and 'gen.npz' in f], key=lambda x: int(x.split('.')[2]))
 for gen_file in gen_files:
     batch_num = int(gen_file.split('.')[2])
 
-    out_file = '%s/chr.%s.%d.famgen.counts.txt' % (args.out_dir, args.chrom, batch_num)
+    out_file = '%s/family_genotype_counts/chr.%s.%d.famgen.counts.txt' % (args.data_dir, args.chrom, batch_num)
     print('saving to %s' % out_file)
 
-    pos_data = np.load('%s/chr.%s.%d.gen.coordinates.npy' % (args.data_dir, args.chrom, batch_num))
+    pos_data = np.load('%s/genotypes/chr.%s.%d.gen.coordinates.npy' % (args.data_dir, args.chrom, batch_num))
     if pos_data.shape[0]>0:
         is_snp = pos_data[:, 2].astype(bool)
         is_pass = pos_data[:, 3].astype(bool)
@@ -111,7 +110,7 @@ for gen_file in gen_files:
         print('filtered by exclude', np.sum(~is_ok_exclude))
 
         # Pull data together
-        A = sparse.load_npz('%s/%s' % (args.data_dir, gen_file))
+        A = sparse.load_npz('%s/genotypes/%s' % (args.data_dir, gen_file))
 
         # filter out snps
         A = A[:, is_snp & is_ok_pass & is_ok_include & is_ok_exclude]
