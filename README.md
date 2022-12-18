@@ -42,7 +42,7 @@ The `chr.[chrom].[batch_num].famgen.counts.txt` files contain counts of the numb
 
 The `errors.json` file contains the sequencing error rates estimated by our method. There may be multiple files in the `[data_dir]/sequencing_error_rates` directory corresponding to different variant filters. For example, our method can be used to estimate sequencing error rates in low-complexity vs high-complexity regions (again, see `--count_type` option below).
 
-## Instructions for running code (autosomal error rates)
+## Instructions for running code
 1. Start by getting your genomic data into numpy format using https://github.com/kpaskov/VCFtoNPZ. 
 
 2. Pull family genotype counts.
@@ -58,7 +58,7 @@ The script has options
 - `--count_type [output_dir]` which creates a subdirectory `[data_dir]/family_genotype_counts/[output_dir]` and stores the `*.famgen.counts.txt` files there. This option is useful when creating different types of family genotype counts from the same dataset, for example counts in low-complexity and high-complexity regions.
 
 3. Estimate sequencing error rates.
-Now we can estimate error rates for each individual. Error rates are written to `[output_file]` in .json format.
+Now we can estimate error rates for each individual. Error rates are written to `[data_dir]/sequencing_error_rates` in .json format.
 
 `python estimate_sequencing_error_rates.py [data_dir]`
 
@@ -67,4 +67,8 @@ The script has options
 - `--count_type [input_dir]` which uses the family genotype counts stored in `[data_dir]/family_genotype_counts/[input_dir]` to estimate sequencing error rates. This option is useful when creating different types of family genotype counts from the same dataset, for example counts in low-complexity and high-complexity regions.
 
 ## Instructions for estimating error rates on the X-chromosome
+Estimating error rates on the X-chromosome is very similar to the autosomes. However, we need to use a modified version of the algorithm outside of the pseudo-autosomal regions, due to the fact that males only inherit an X-chromosome from their mothers.
+
+
+
 
