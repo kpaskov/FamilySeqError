@@ -128,7 +128,30 @@ python pull_famgen_counts.py [data_dir] [ped_file] X --exclude data/btu356-suppl
 s38.bed data/PAR38.bed --use_pass --count_type X_nonPAR_HCR
 ```
 
+### 3. Estimate sequencing error rates.
 
+Again, we do this separately for PAR and non-PAR regions of the X-chromosome. PAR regions act just like the autosomes, so we can estimate sequencing error rates in the same way. 
 
+```
+python estimate_sequencing_error_rates.py [data_dir] --chrom X --count_type X_PAR --is_ngs
+```
+
+For non-PAR regions, we must adapt our algorithm to take into account the X-inheritance pattern of variants.
+
+```
+python estimate_sequencing_error_ratesX.py [data_dir] [ped_file] --count_type X_nonPAR --is_ngs
+```
+
+Or, if you want to estimate error rates in low- and high- complexity regions separately, use
+
+```
+python estimate_sequencing_error_rates.py [data_dir] --chrom X --count_type X_PAR_LCR --is_ngs
+
+python estimate_sequencing_error_rates.py [data_dir] --chrom X --count_type X_PAR_HCR --is_ngs
+
+python estimate_sequencing_error_ratesX.py [data_dir] [ped_file] --count_type X_nonPAR_LCR --is_ngs
+
+python estimate_sequencing_error_ratesX.py [data_dir] [ped_file] --count_type X_nonPAR_HCR --is_ngs
+```
 
 
