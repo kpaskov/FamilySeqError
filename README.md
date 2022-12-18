@@ -154,4 +154,5 @@ python estimate_sequencing_error_ratesX.py [data_dir] [ped_file] --count_type X_
 python estimate_sequencing_error_ratesX.py [data_dir] [ped_file] --count_type X_nonPAR_HCR --is_ngs
 ```
 
+Estimated sequencing error rates will be found in `[data_dir]/sequencing_error_rates`.
 
