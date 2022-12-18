@@ -133,7 +133,7 @@ for gen_file in gen_files:
 
         if exclude_regions is not None:
             for regions in exclude_regions:
-                insert_loc = np.searchsorted(exclude_regions, pos_data[:, 1])
+                insert_loc = np.searchsorted(regions, pos_data[:, 1])
                 is_ok_exclude = np.remainder(insert_loc, 2)==0
                 is_ok = is_ok & is_ok_exclude
                 print('surviving exclude filter: %d (%s)' % (np.sum(is_ok), filename))
