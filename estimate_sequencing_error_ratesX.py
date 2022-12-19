@@ -5,7 +5,7 @@ from itertools import product
 import cvxpy as cp
 from collections import Counter, defaultdict
 import json
-from os import listdir
+import os
 import random
 from calculate_metrics import add_observed_counts, add_estimated_error_rates, add_expected_counts, add_precision_recall
 
@@ -132,7 +132,7 @@ family_to_indices = dict()
 for i, chrom in enumerate(chroms):
     print(chrom, end=' ')
 
-    count_files = sorted([f for f in listdir(args.data_dir) if ('chr.%s.' % chrom) in f and 'famgen.counts.txt' in f])
+    count_files = sorted([f for f in os.listdir(args.data_dir) if ('chr.%s.' % chrom) in f and 'famgen.counts.txt' in f])
     for count_file in count_files:
         with open('%s/%s' % (args.data_dir, count_file), 'r') as f:
             for line in f:
@@ -323,4 +323,3 @@ print('Total errors', num_error_families)
 
 with open(out_file, 'w+') as f:
     json.dump(params, f, indent=4)
-    
