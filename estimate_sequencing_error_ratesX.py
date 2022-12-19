@@ -13,11 +13,21 @@ import argparse
 
 parser = argparse.ArgumentParser(description='Estimate parameters.')
 parser.add_argument('data_dir', type=str, help='Family genotype count directory.')
-parser.add_argument('out_file', type=str, help='Output file.')
 parser.add_argument('ped_file', type=str, help='Ped file.')
 parser.add_argument('--is_ngs', action='store_true', default=False, help='True if this data is NGS. The important point is whether or not sites where all individuals are homozygous reference are sometimes dropped from the VCF. If this happens, use flag --is_ngs')
 parser.add_argument('--family', type=str, default=None, help='Estimate parameters for a given family only.')
+parser.add_argument('--count_type', type=str, default=None, help='Name of count type. Used to differentiate between counts in high-complexity vs low-complexity regions, for example.')
 args = parser.parse_args()
+
+if not os.path.exists('%s/sequencing_error_rates' % args.data_dir):
+    os.makedirs('%s/sequencing_error_rates' % args.data_dir)
+
+if args.count_type is None:
+    input_dir = '%s/family_genotype_counts' % args.data_dir
+    out_file = '%s/sequencing_error_rates/errors.json' % args.data_dir
+else:
+    input_dir = '%s/family_genotype_counts/%s' % (args.data_dir, args.count_type)
+    out_file = '%s/sequencing_error_rates/%s_errors.json' % (args.data_dir, args.count_type)
 
 chroms = ['X']
 
@@ -311,5 +321,6 @@ print('Total errors', num_error_families)
 
 # ------------------------------------ Write to file ------------------------------------
 
-with open(args.out_file, 'w+') as f:
+with open(out_file, 'w+') as f:
     json.dump(params, f, indent=4)
+    
