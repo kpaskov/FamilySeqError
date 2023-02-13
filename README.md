@@ -25,7 +25,7 @@ Not all of these error metrics are available for parents. In particular, $P[\tex
 The code adds to a directory structure created by the https://github.com/kpaskov/VCFtoNPZ project.
 
 ```
-data_dir
+[data_dir]
 - genotypes
 - family_genotype_counts
 - - info.json
