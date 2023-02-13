@@ -132,9 +132,9 @@ family_to_indices = dict()
 for i, chrom in enumerate(chroms):
     print(chrom, end=' ')
 
-    count_files = sorted([f for f in os.listdir(args.data_dir) if ('chr.%s.' % chrom) in f and 'famgen.counts.txt' in f])
+    count_files = sorted([f for f in os.listdir(input_dir) if ('chr.%s.' % chrom) in f and 'famgen.counts.txt' in f])
     for count_file in count_files:
-        with open('%s/%s' % (args.data_dir, count_file), 'r') as f:
+        with open('%s/%s' % (input_dir, count_file), 'r') as f:
             for line in f:
                 famkey = line.strip().split('\t', maxsplit=1)[0]
                 if args.family==None or args.family==famkey:
