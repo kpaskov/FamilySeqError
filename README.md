@@ -50,24 +50,23 @@ using https://github.com/kpaskov/VCFtoNPZ.
 A family genotype is a tuple of genotypes, representing the genotypes of a mother, father, and their child(ren), respectively, at a given site. The following code counts the number of times each family genotype occurs for each family on each segment of each chromosome. It produces a series of files `[output_dir]/chr.[chrom].[batch_num].famgen.counts.txt` which contain a line for each family in the dataset, representing the number of times each family genotype occurs for that family within the corresponding segment of chromosome `[chrom]`.
 
 ```
-python pull_famgen_counts.py [data_dir] [ped_file] [chrom]
+python pull_famgen_counts.py [data_dir] [ped_file]
 ```
 
 The script has options 
+- `--chrom [chrom]` run only on chromosome [chrom]. If this option is not used, family genotype counts are pulled for all autosomal chromosomes
 - `--use_pass` which uses the PASS flag (from the VCF file) to filter variants. Only variants that PASS are counted.
 - `--include [bed_file]` which uses a BED file to filter variants. Only variants within the intervals listed in the BED file are counted.
 - `--exlude [bed_file]` which uses a BED file to filter variants. Only variants outside the intervals listed in the BED file are counted.
 - `--exlude [bed_file]` which uses a BED file to filter variants. Only variants outside the intervals listed in the BED file are counted.
 - `--count_type [output_dir]` which creates a subdirectory `[data_dir]/family_genotype_counts/[output_dir]` and stores the `*.famgen.counts.txt` files there. This option is useful when creating different types of family genotype counts from the same dataset, for example counts in low-complexity and high-complexity regions.
 
-This is an example of pulling family genotype counts in low- and high- complexity regions from chromosome `[chrom]` of a whole-genome sequencing dataset. Low-complexity regions are defined by supplementary materials file from https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4271055/. Family genotype counts for all 22 autosomal chromosomes must be pulled in order to run the next step.
+This is an example of pulling family genotype counts in low- and high- complexity regions from a whole-genome sequencing dataset. Low-complexity regions are defined by supplementary materials file from https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4271055/.
 
 ```
-python pull_famgen_counts.py [data_dir] [ped_file] [chrom] --include data/btu356-suppl_data/btu356_LCR-h\
-s38.bed/btu356_LCR-hs38.bed --use_pass --count_type LCR                                                                                     
+python pull_famgen_counts.py [data_dir] [ped_file] --include data/btu356-suppl_data/btu356_LCR-hs38.bed/btu356_LCR-hs38.bed --use_pass --count_type LCR                                                                                     
 
-python pull_famgen_counts.py [data_dir] [ped_file] [chrom] --exclude data/btu356-suppl_data/btu356_LCR-h\
-s38.bed/btu356_LCR-hs38.bed --use_pass --count_type HCR
+python pull_famgen_counts.py [data_dir] [ped_file] --exclude data/btu356-suppl_data/btu356_LCR-hs38.bed/btu356_LCR-hs38.bed --use_pass --count_type HCR
 ```
 
 ### 3. Estimate sequencing error rates.
@@ -103,29 +102,25 @@ We do this separately for PAR and non-PAR regions of the X-chromosome.
 For PAR
 
 ```
-python pull_famgen_counts.py [data_dir] [ped_file] X --include data/PAR38.bed --use_pass --count_type X_PAR
+python pull_famgen_counts.py [data_dir] [ped_file] --chrom X --include data/PAR38.bed --use_pass --count_type X_PAR
 ```
 
 For non-PAR
 
 ```
-python pull_famgen_counts.py [data_dir] [ped_file] X --exclude data/PAR38.bed --use_pass --count_type X_nonPAR
+python pull_famgen_counts.py [data_dir] [ped_file] --chrom X --exclude data/PAR38.bed --use_pass --count_type X_nonPAR
 ```
 
 Or, if you want to estimate error rates in low- and high- complexity regions separately, use
 
 ```
-python pull_famgen_counts.py [data_dir] [ped_file] X --include data/btu356-suppl_data/btu356_LCR-hs38.bed/btu356_LCR-\
-hs38.bed data/PAR38.bed --use_pass --count_type X_PAR_LCR
+python pull_famgen_counts.py [data_dir] [ped_file] --chrom X --include data/btu356-suppl_data/btu356_LCR-hs38.bed/btu356_LCR-hs38.bed data/PAR38.bed --use_pass --count_type X_PAR_LCR
 
-python pull_famgen_counts.py [data_dir] [ped_file] X --exclude data/btu356-suppl_data/btu356_LCR-hs38.bed/btu356_LCR-\
-hs38.bed --include data/PAR38.bed --use_pass --count_type X_PAR_HCR
+python pull_famgen_counts.py [data_dir] [ped_file] --chrom X --exclude data/btu356-suppl_data/btu356_LCR-hs38.bed/btu356_LCR-hs38.bed --include data/PAR38.bed --use_pass --count_type X_PAR_HCR
 
-python pull_famgen_counts.py [data_dir] [ped_file] X --include data/btu356-suppl_data/btu356_LCR-hs38.bed/btu356_LCR-\
-hs38.bed --exclude data/PAR38.bed --use_pass --count_type X_nonPAR_LCR
+python pull_famgen_counts.py [data_dir] [ped_file] --chrom X --include data/btu356-suppl_data/btu356_LCR-hs38.bed/btu356_LCR-hs38.bed --exclude data/PAR38.bed --use_pass --count_type X_nonPAR_LCR
 
-python pull_famgen_counts.py [data_dir] [ped_file] X --exclude data/btu356-suppl_data/btu356_LCR-hs38.bed/btu356_LCR-h\
-s38.bed data/PAR38.bed --use_pass --count_type X_nonPAR_HCR
+python pull_famgen_counts.py [data_dir] [ped_file] --chrom X --exclude data/btu356-suppl_data/btu356_LCR-hs38.bed/btu356_LCR-hs38.bed data/PAR38.bed --use_pass --count_type X_nonPAR_HCR
 ```
 
 ### 3. Estimate sequencing error rates.
